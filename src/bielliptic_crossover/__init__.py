@@ -1,8 +1,9 @@
 """Bi-elliptic vs. Hohmann transfer crossover analysis.
 
-Milestone 2: production transfer equations, dimensional cross-checks, crossover
-and break-even solvers, and their verification suite. The analytical development
-and the verification plan they implement are in ``DESIGN.md``.
+Milestone 3: the M2 transfer equations and solvers, plus the trade-study layer in
+:mod:`bielliptic_crossover.trade` (crossover map, break-even locus, delta-v/time
+trade, scoped recommendation). The analytical development and the verification
+plan they implement are in ``DESIGN.md``.
 
 Normalization::
 
@@ -24,8 +25,10 @@ Quick start::
 No crossover constant is hardcoded anywhere: both thresholds are recomputed from
 the transfer equations and cross-checked against exact polynomial forms.
 
-Not yet implemented (Milestone 3 and later): the final portfolio crossover
-figure, sensitivity sweeps, and the engineering recommendation.
+The trade layer is imported explicitly as ``bielliptic_crossover.trade`` so that
+this module's M2 surface stays exactly as verified.
+
+Not yet implemented (Milestone 4 and later): final portfolio packaging and polish.
 """
 
 from __future__ import annotations
@@ -84,7 +87,7 @@ from .timing import (
     time_scale,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "__version__",

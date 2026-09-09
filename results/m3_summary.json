@@ -1,0 +1,360 @@
+{
+  "Bcrit_asymptotics": {
+    "monotonicity": "B_crit/R decreases strictly across Region B",
+    "near_R1_star": "B_crit -> infinity as R -> R1*+",
+    "near_R2_star": "B_crit -> R as R -> R2*-"
+  },
+  "Bcrit_examples": {
+    "12": 815.8202504753092,
+    "12.5": 90.75094420913885,
+    "13": 48.90484332838889,
+    "14": 26.10461128235042,
+    "15": 18.19028151222189,
+    "15.5": 15.896871011509875
+  },
+  "Earth_reference": {
+    "R_earth_km": 6378.1363,
+    "h1_km": 300.0,
+    "lunar_distance_km": 384400.0,
+    "mu_km3_s2": 398600.4418,
+    "r1_km": 6678.1363,
+    "r2_at_R1_star_km": 79728.70308006319,
+    "r2_at_R2_star_km": 104056.84152572461,
+    "v1_km_s": 7.725760636982919
+  },
+  "GEO_classification": {
+    "R": 6.313737561780522,
+    "dv_hohmann_km_s": 3.892554659513011,
+    "dv_infinite_infimum_km_s": 4.473683310143502,
+    "infimum_saving_m_s": 0.0,
+    "r_geo_km": 42164.0,
+    "regime": "hohmann_only",
+    "verdict": "Region A: Hohmann beats every admissible bi-elliptic transfer"
+  },
+  "R12_trade": {
+    "B_crit": 815.8202504753092,
+    "R": 12.0,
+    "break_even": {
+      "B_crit": 815.8202504753092,
+      "B_crit_over_R": 67.98502087294243,
+      "dv_saving_m_s": 0.0,
+      "model_validity_flag": "two_body_invalid",
+      "note": "saving is zero at break-even by definition",
+      "rb_km": 5448158.828974254,
+      "rb_over_lunar_distance": 14.173149919287862,
+      "t_bielliptic_days": 524.0876503171905,
+      "time_ratio": 1006.1986508241682
+    },
+    "dv_hohmann_bar": 0.5341798721538682,
+    "dv_hohmann_km_s": 4.126945829354923,
+    "dv_infinite_infimum_bar": 0.5337867182421453,
+    "finite_strategies": [
+      {
+        "B": 15.0,
+        "B_over_R": 1.25,
+        "dv_saving_m_s": -22.303124470558657,
+        "extra_time_days": 1.7493470178288624,
+        "model_validity_flag": "lunar_third_body_caution",
+        "rb_km": 100172.0445,
+        "rb_over_lunar_distance": 0.26059324791883454,
+        "strategy": "B/R=1.25",
+        "time_ratio": 4.358580588757193
+      },
+      {
+        "B": 18.0,
+        "B_over_R": 1.5,
+        "dv_saving_m_s": -32.554515660191065,
+        "extra_time_days": 2.2253962947336468,
+        "model_validity_flag": "lunar_third_body_caution",
+        "rb_km": 120206.4534,
+        "rb_over_lunar_distance": 0.3127118975026015,
+        "strategy": "B/R=1.5",
+        "time_ratio": 5.272550112476198
+      },
+      {
+        "B": 24.0,
+        "B_over_R": 2.0,
+        "dv_saving_m_s": -39.01982237568278,
+        "extra_time_days": 3.268445824598651,
+        "model_validity_flag": "lunar_third_body_caution",
+        "rb_km": 160275.27120000002,
+        "rb_over_lunar_distance": 0.4169491966701353,
+        "strategy": "B/R=2",
+        "time_ratio": 7.275106419723198
+      },
+      {
+        "B": 36.0,
+        "B_over_R": 3.0,
+        "dv_saving_m_s": -36.867067497731846,
+        "extra_time_days": 5.675554156118812,
+        "model_validity_flag": "lunar_third_body_caution",
+        "rb_km": 240412.9068,
+        "rb_over_lunar_distance": 0.625423795005203,
+        "strategy": "B/R=3",
+        "time_ratio": 11.896526432382016
+      },
+      {
+        "B": 60.0,
+        "B_over_R": 5.0,
+        "dv_saving_m_s": -27.473625897481224,
+        "extra_time_days": 11.562306145003191,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 400688.178,
+        "rb_over_lunar_distance": 1.0423729916753381,
+        "strategy": "B/R=5",
+        "time_ratio": 23.198532700545485
+      },
+      {
+        "B": 120.0,
+        "B_over_R": 10.0,
+        "dv_saving_m_s": -14.99322767652285,
+        "extra_time_days": 31.122220509314,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 801376.356,
+        "rb_over_lunar_distance": 2.0847459833506763,
+        "strategy": "B/R=10",
+        "time_ratio": 60.75171570665962
+      },
+      {
+        "B": 240.0,
+        "B_over_R": 20.0,
+        "dv_saving_m_s": -6.730275691165656,
+        "extra_time_days": 85.50749659648604,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 1602752.712,
+        "rb_over_lunar_distance": 4.169491966701353,
+        "strategy": "B/R=20",
+        "time_ratio": 165.16629481474027
+      },
+      {
+        "B": 600.0,
+        "B_over_R": 50.0,
+        "dv_saving_m_s": -1.058561395062239,
+        "extra_time_days": 331.4460259811188,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 4006881.7800000003,
+        "rb_over_lunar_distance": 10.423729916753382,
+        "strategy": "B/R=50",
+        "time_ratio": 637.3449777177374
+      },
+      {
+        "B": 815.8202504753092,
+        "B_over_R": 67.98502087294243,
+        "dv_saving_m_s": 0.0,
+        "extra_time_days": 523.5667912901108,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 5448158.828974254,
+        "rb_over_lunar_distance": 14.173149919287862,
+        "strategy": "B_crit",
+        "time_ratio": 1006.1986508241682
+      },
+      {
+        "B": 897.4022755228402,
+        "B_over_R": 74.78352296023668,
+        "dv_saving_m_s": 0.27036148783179503,
+        "extra_time_days": 603.4603287510407,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 5992974.711871681,
+        "rb_over_lunar_distance": 15.590464911216651,
+        "strategy": "1.1*B_crit",
+        "time_ratio": 1159.5866758121729
+      },
+      {
+        "B": 1200.0,
+        "B_over_R": 100.0,
+        "dv_saving_m_s": 0.957209304037898,
+        "extra_time_days": 930.8647780436105,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 8013763.5600000005,
+        "rb_over_lunar_distance": 20.847459833506765,
+        "strategy": "B/R=100",
+        "time_ratio": 1788.172209076756
+      },
+      {
+        "B": 1631.6405009506184,
+        "B_over_R": 135.97004174588486,
+        "dv_saving_m_s": 1.5012000776452223,
+        "extra_time_days": 1473.0252167291383,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 10896317.657948509,
+        "rb_over_lunar_distance": 28.346299838575725,
+        "strategy": "2*B_crit",
+        "time_ratio": 2829.068901844568
+      }
+    ],
+    "infimum_attainable": false,
+    "infimum_endpoint": "B->inf",
+    "infimum_saving_m_s": 3.037413015464629,
+    "r2_altitude_km": 73759.49930000001,
+    "r2_km": 80137.63560000001,
+    "recommendation": {
+      "delta_v_verdict": "A bi-elliptic transfer beats Hohmann only if B exceeds B_crit = 815.82 (r_b = 5.448e+06 km, 14.2 lunar distances). The entire mathematical prize, requiring B -> infinity, is 3.04 m/s.",
+      "headline": "Hohmann unless a very distant apoapsis is acceptable.",
+      "practical_caveat": "Merely reaching break-even already costs 1006x the Hohmann transfer time (524.1 d vs 0.5209 d) for zero saving. The best finite strategy evaluated saves 1.5 m/s at 2829x the Hohmann time."
+    },
+    "regime": "large_B_bielliptic",
+    "t_hohmann_days": 0.5208590270797074
+  },
+  "R16_trade": {
+    "B_crit": null,
+    "R": 16.0,
+    "dv_hohmann_bar": 0.5362393885688164,
+    "dv_hohmann_km_s": 4.14285716020475,
+    "dv_infinite_infimum_bar": 0.5177669529663689,
+    "finite_strategies": [
+      {
+        "B": 20.0,
+        "B_over_R": 1.25,
+        "dv_saving_m_s": 5.973378833455723,
+        "extra_time_days": 2.6907541935158177,
+        "model_validity_flag": "lunar_third_body_caution",
+        "rb_km": 133562.726,
+        "rb_over_lunar_distance": 0.3474576638917794,
+        "strategy": "B/R=1.25",
+        "time_ratio": 4.454581769255811
+      },
+      {
+        "B": 24.0,
+        "B_over_R": 1.5,
+        "dv_saving_m_s": 14.665848848794125,
+        "extra_time_days": 3.4213690976331512,
+        "model_validity_flag": "lunar_third_body_caution",
+        "rb_km": 160275.27120000002,
+        "rb_over_lunar_distance": 0.4169491966701353,
+        "strategy": "B/R=1.5",
+        "time_ratio": 5.3925971904312515
+      },
+      {
+        "B": 32.0,
+        "B_over_R": 2.0,
+        "dv_saving_m_s": 31.86762709478339,
+        "extra_time_days": 5.023123922107138,
+        "model_validity_flag": "lunar_third_body_caution",
+        "rb_km": 213700.3616,
+        "rb_over_lunar_distance": 0.555932262226847,
+        "strategy": "B/R=2",
+        "time_ratio": 7.449044051604879
+      },
+      {
+        "B": 48.0,
+        "B_over_R": 3.0,
+        "dv_saving_m_s": 57.504890186384024,
+        "extra_time_days": 8.722148614708786,
+        "model_validity_flag": "lunar_third_body_caution",
+        "rb_km": 320550.54240000003,
+        "rb_over_lunar_distance": 0.8338983933402706,
+        "strategy": "B/R=3",
+        "time_ratio": 12.198115259180277
+      },
+      {
+        "B": 80.0,
+        "B_over_R": 5.0,
+        "dv_saving_m_s": 85.38916504584549,
+        "extra_time_days": 17.774298530869956,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 534250.904,
+        "rb_over_lunar_distance": 1.3898306555671176,
+        "strategy": "B/R=5",
+        "time_ratio": 23.819909679606614
+      },
+      {
+        "B": 160.0,
+        "B_over_R": 10.0,
+        "dv_saving_m_s": 111.4522302834986,
+        "extra_time_days": 47.86827731259141,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 1068501.808,
+        "rb_over_lunar_distance": 2.779661311134235,
+        "strategy": "B/R=10",
+        "time_ratio": 62.45670181551934
+      },
+      {
+        "B": 320.0,
+        "B_over_R": 20.0,
+        "dv_saving_m_s": 126.38169207897143,
+        "extra_time_days": 131.57085100434793,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 2137003.616,
+        "rb_over_lunar_distance": 5.55932262226847,
+        "strategy": "B/R=20",
+        "time_ratio": 169.92002411086128
+      },
+      {
+        "B": 800.0,
+        "B_over_R": 50.0,
+        "dv_saving_m_s": 136.0052451564668,
+        "extra_time_days": 510.16029347622225,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 5342509.04,
+        "rb_over_lunar_distance": 13.898306555671176,
+        "strategy": "B/R=50",
+        "time_ratio": 655.9800994413247
+      },
+      {
+        "B": 1600.0,
+        "B_over_R": 100.0,
+        "dv_saving_m_s": 139.32952086786148,
+        "extra_time_days": 1432.960773445711,
+        "model_validity_flag": "two_body_invalid",
+        "rb_km": 10685018.08,
+        "rb_over_lunar_distance": 27.796613111342353,
+        "strategy": "B/R=100",
+        "time_ratio": 1840.7370432176415
+      }
+    ],
+    "infimum_attainable": false,
+    "infimum_endpoint": "B->inf",
+    "infimum_saving_m_s": 142.71361584659067,
+    "r2_altitude_km": 100472.0445,
+    "r2_km": 106850.1808,
+    "recommendation": {
+      "delta_v_verdict": "Every admissible B > R beats Hohmann at R = 16. The mathematical infimum, requiring B -> infinity, saves 143 m/s.",
+      "headline": "Bi-elliptic is delta-v favourable; weigh the saving against time.",
+      "practical_caveat": "Delta-v dominance does not imply a large practical benefit: the best finite strategy evaluated saves 139 m/s at 1841x the Hohmann transfer time (1433 extra days)."
+    },
+    "regime": "all_bielliptic",
+    "t_hohmann_days": 0.7788943418454565
+  },
+  "R1_star": 11.938765472645892,
+  "R1_star_definition": "dv_bar_H(R) = dv_bar_B_inf(R); first R at which ANY bi-elliptic can beat Hohmann",
+  "R2_star": 15.581718738763179,
+  "R2_star_definition": "d(dv_bar_B)/dB = 0 at B = R+; R above which EVERY admissible B > R beats Hohmann",
+  "recommendation_summary": {
+    "band_A": {
+      "condition": "1 < R < 11.93876547264589",
+      "guidance": "Hohmann is delta-v superior to every admissible bi-elliptic transfer. No intermediate apoapsis helps.",
+      "regime": "hohmann_only"
+    },
+    "band_B": {
+      "condition": "11.93876547264589 < R < 15.58171873876318",
+      "guidance": "A bi-elliptic transfer can beat Hohmann ONLY if the intermediate apoapsis exceeds B_crit(R). Near the lower threshold the required apoapsis and transfer time are absurdly large for a vanishing delta-v saving.",
+      "regime": "large_B_bielliptic"
+    },
+    "band_C": {
+      "condition": "R > 15.58171873876318",
+      "guidance": "Every admissible B > R is delta-v better than Hohmann, but the practical size of the saving must still be weighed against the transfer-time penalty. Delta-v dominance is not the same as a material benefit.",
+      "regime": "all_bielliptic"
+    },
+    "earth_leo_to_geo": {
+      "R": 6.313737561780522,
+      "guidance": "A 300 km LEO to GEO transfer has R = 6.313737562, firmly inside Region A. Hohmann remains preferred within this idealized coplanar impulsive two-body model.",
+      "regime": "hohmann_only"
+    },
+    "infinite_B_status": "B -> infinity is a MATHEMATICAL INFIMUM with unbounded transfer time. It is a lower bound on achievable delta-v, never an engineering recommendation and never a realizable transfer.",
+    "model_validity_warning": "Apoapsis radii approaching or exceeding the lunar distance (384400 km) invalidate the Earth-only two-body model used throughout. Results quoted beyond that radius are mathematical extrapolations of the idealized model, not trajectory designs."
+  },
+  "scope": {
+    "excluded": [
+      "J2 and higher gravity harmonics",
+      "third-body (lunar/solar) perturbations",
+      "atmospheric drag",
+      "finite-burn losses",
+      "plane changes",
+      "low thrust",
+      "radiation and environment models",
+      "launch and operational constraints",
+      "mission-specific optimization"
+    ],
+    "model": "idealized coplanar two-body impulsive transfer"
+  }
+}

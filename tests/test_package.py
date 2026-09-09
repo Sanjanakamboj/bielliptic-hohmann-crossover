@@ -22,7 +22,7 @@ def test_package_imports() -> None:
 
 
 def test_version_string() -> None:
-    assert bielliptic_crossover.__version__ == "0.2.0"
+    assert bielliptic_crossover.__version__ == "0.3.0"
 
 
 @pytest.mark.parametrize(
@@ -42,7 +42,13 @@ def test_version_string() -> None:
         "src/bielliptic_crossover/crossover.py",
         "scripts/m2_verification_report.py",
         "scripts/m2_diagnostic_figures.py",
+        "scripts/m3_trade_analysis.py",
+        "scripts/m3_figures.py",
+        "src/bielliptic_crossover/trade.py",
         "results/m2_verification_report.txt",
+        "results/m3_summary.json",
+        "figures/m3_crossover_map.png",
+        "figures/m3_dv_time_trade.png",
         "figures/m2_fig1_excess_vs_B.png",
         "figures/m2_fig2_time_trade_R12.png",
     ],
@@ -80,22 +86,41 @@ def test_m2_public_api_exists(attribute_name: str) -> None:
 @pytest.mark.parametrize(
     "attribute_name",
     [
-        # Milestone 3+ surface: sensitivity sweeps, portfolio figure, recommendation.
-        "sensitivity_sweep",
-        "crossover_sweep",
-        "plot_crossover",
-        "portfolio_figure",
-        "engineering_recommendation",
-        "recommend_transfer",
-        "mission_optimizer",
+        # Physics deliberately excluded from this idealized model, in EVERY
+        # milestone. M3 delivered the sweeps, figures and recommendation (they
+        # live in bielliptic_crossover.trade), but none of the following may
+        # appear without an explicit scope change.
         "j2_correction",
+        "j2_perturbation",
+        "third_body_acceleration",
+        "lunar_perturbation",
         "finite_burn_loss",
+        "gravity_loss",
         "plane_change_dv",
+        "inclination_change",
+        "low_thrust_transfer",
+        "lambert_solve",
+        "radiation_dose",
+        "mission_optimizer",
+        "atmospheric_drag",
     ],
 )
-def test_no_milestone_3_api_yet(attribute_name: str) -> None:
-    """M2 is equation/solver verification only."""
+def test_excluded_physics_is_absent(attribute_name: str) -> None:
+    """The model stays coplanar, two-body and impulsive."""
+    import bielliptic_crossover.trade as trade_module
+
     assert not hasattr(bielliptic_crossover, attribute_name)
+    assert not hasattr(trade_module, attribute_name)
+
+
+def test_trade_layer_is_not_exported_from_the_M2_surface() -> None:
+    """M3 is additive: the verified M2 public API in __init__ is unchanged."""
+    assert "trade" not in bielliptic_crossover.__all__
+    import bielliptic_crossover.trade as trade_module
+
+    assert hasattr(trade_module, "evaluate_trade")
+    assert hasattr(trade_module, "break_even_locus")
+    assert hasattr(trade_module, "recommendation_summary")
 
 
 def test_all_exports_resolve() -> None:

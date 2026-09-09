@@ -1123,3 +1123,351 @@ One clarification, not a correction: M1 Section 6.1 described the shape scan; M2
 adds that the scan needs a rounding-noise floor to remain meaningful past
 `B/R ~ 1e10`, and that `R = 9` is the special case where the tail decays
 quadratically. The structural conclusion is unchanged.
+
+---
+---
+
+# DESIGN — Milestone 3
+
+**Global crossover map, break-even locus, delta-v/time trade, and the engineering
+recommendation.**
+
+Status: **M3 complete.** The M1 and M2 sections above are unchanged and no
+accepted headline value was altered. M3 composes the verified M2 primitives into
+the principal trade study; it contains no transfer equations of its own.
+
+## M3.1 Production module
+
+`src/bielliptic_crossover/trade.py`. Every delta-v and every transfer time is
+obtained by calling M2 production functions — a test asserts that
+`practical_trade_metrics` reproduces direct M2 calls exactly, so the trade layer
+can only delegate, never re-derive.
+
+| API | Purpose |
+|---|---|
+| `TradePoint`, `RadiusRatioTrade`, `EndpointInfimum`, `BreakEvenLocusPoint`, `Recommendation` | result records |
+| `minimum_endpoint_transfer(R)` | mathematical best-possible delta-v and which endpoint attains it |
+| `practical_trade_metrics(R, B)` | full delta-v / time / geometry metrics for one finite design |
+| `break_even_trade(R)` | metrics exactly at `B_crit`, or `None` outside Region B |
+| `evaluate_trade(R, B_values)` | the whole finite-`B` family at one `R` |
+| `authoritative_R_grid()`, `break_even_locus_grid()` | the documented sweep grids |
+| `break_even_locus()` | `B_crit(R)` across Region B, solved at every point |
+| `sweep_radius_ratios()` | endpoint-infimum envelope |
+| `model_validity(rb_km)` | two-body model-validity flag and note |
+| `recommendation_for(R)`, `recommendation_summary()` | scoped guidance, built from recomputed thresholds |
+
+Three ideas are kept rigorously separate throughout: **mathematical delta-v
+dominance**, **finite-`B` practical saving**, and **transfer-time / model-validity
+penalty**. The `B -> infinity` branch is called the *mathematical infimum*
+everywhere; `EndpointInfimum.attainable` is `False` whenever it is the best
+endpoint, because it is not a realizable transfer.
+
+## M3.2 Authoritative sweep domain
+
+`authoritative_R_grid()` returns **1090 points** on `R ∈ [1.01, 100]`:
+
+- 600 logarithmically spaced points across the full domain;
+- 241 linearly spaced points in a window of half-width 0.5 about **each**
+  threshold (so both are locally resolved to ~4e-3 in `R`);
+- the thresholds themselves plus offsets at `±1e-9`, `+1e-6`, `+1e-3` relative;
+- deduplicated and sorted.
+
+The domain resolves both thresholds, contains ordinary transfers (GEO sits at
+`R = 6.3137`), and reaches `R = 100` where the asymptotic trend is clear.
+
+**The grid never defines a threshold.** `R1*` and `R2*` always come from the M2
+root solvers; a test re-runs the sweep at three very different resolutions and
+confirms the thresholds are bit-identical.
+
+Finite apoapsis family: `B/R ∈ {1.25, 1.5, 2, 3, 5, 10, 20, 50, 100}`, plus
+`B_crit`, `1.1 B_crit` and `2 B_crit` where Region B defines them. These are
+**representative bounded designs, never optima** — M1/M2 established that no
+finite interior optimum exists.
+
+## M3.3 Break-even locus `B_crit(R)`
+
+`break_even_locus()` solves the root at each of **219** points spanning Region B,
+parameterised as `R = R1* + (R2* - R1*)·s` with `s` logarithmically spaced so both
+ends are resolved. Nothing is interpolated: a test asserts every locus point
+satisfies `dv_bar_B(R, B_crit) - dv_bar_H(R) = 0` to better than `1e-15`, and
+cross-checks a sample against an independent bisection.
+
+| `R` | `B_crit` | `B_crit/R` | `r_b,crit` altitude | `t_B/t_H` at break-even |
+|---|---|---|---|---|
+| 12 | `815.8202504753092` | 67.985 | 5.442e+06 km | 1006.20 |
+| 12.5 | `90.75094420913885` | 7.260 | 6.001e+05 km | 38.87 |
+| 13 | `48.90484332838889` | 3.762 | 3.202e+05 km | 16.03 |
+| 14 | `26.10461128235042` | 1.865 | 1.680e+05 km | 8.02 |
+| 15 | `18.19028151222189` | 1.213 | 1.151e+05 km | 4.30 |
+| 15.5 | `15.896871011509875` | 1.026 | 9.978e+04 km | 3.63 |
+
+Verified asymptotics, both required and both confirmed numerically:
+
+- **`B_crit -> infinity` as `R -> R1*+`.** At `R - R1* = 3.6e-5`, `B_crit = 1.37e6`.
+  The measured law is `B_crit/R ∝ (R - R1*)^-1` (fitted log-log slope `-1.00005`).
+- **`B_crit -> R` as `R -> R2*-`.** At `R2* - R = 3.6e-6`, `B_crit/R = 1.0000011`.
+  The measured law is `B_crit/R - 1 ≈ 0.306·(R2* - R)` (fitted slope `1.0004`).
+- `B_crit` and `B_crit/R` both **decrease strictly** across Region B (asserted over
+  all 219 points).
+
+Infinity is never faked: the locus simply runs off the top of the figure axes,
+and Region C is drawn with no `B_crit` at all rather than a placeholder.
+
+A consequence of the `-3/2` time law (`t ∝ B^{3/2}`): the break-even **time**
+penalty diverges as `t_B/t_H ∝ (R - R1*)^{-3/2}` (fitted slope `-1.49983`).
+
+## M3.4 Endpoint-optimal envelope
+
+Because no finite interior minimum exists,
+
+```
+dv_best(R) = min( dv_bar_H(R), dv_bar_B_inf(R) )
+saving_bar(R) = dv_bar_H(R) - dv_best(R)
+```
+
+- **Region A: `saving_bar` is exactly `0.0`** (not merely small) — asserted
+  bit-exactly, since `dv_best` returns the Hohmann value itself.
+- Regions B and C: `saving_bar > 0`, but `attainable = False` — it requires
+  `B -> infinity` and therefore unbounded transfer time.
+
+Peak achievable saving over the domain is ≈ **316 m/s near `R ≈ 50`**, falling
+again toward `R = 100` (≈ 289 m/s), because both curves converge to `sqrt(2) - 1`.
+
+## M3.5 Earth dimensional examples
+
+`r1 = 6678.1363 km`, `v1 = 7.72576063698292 km/s`. Final altitude is a conversion
+from the universal radius-ratio result: `h2 = R·r1 - R_Earth`.
+
+| case | `R` | region | `h2` [km] | `dv_H` [km/s] | `B→∞` infimum [km/s] | infimum saving | `B=5R` saving | `t_H` [d] | `t(5R)` [d] |
+|---|---|---|---|---|---|---|---|---|---|
+| GEO | 6.3137 | A | 35785.9 | 3.8926 | 4.4737 | **0.00 m/s** | **−486.4 m/s** | 0.220 | 4.66 |
+| — | 10 | A | 60403.2 | 4.0930 | 4.2121 | 0.00 m/s | −124.8 m/s | 0.405 | 9.21 |
+| — | 12 | B | 73759.5 | 4.1269 | 4.1239 | +3.04 m/s | **−27.5 m/s** | 0.521 | 12.08 |
+| — | 13 | B | 80437.6 | 4.1355 | 4.0877 | +47.87 m/s | +8.54 m/s | 0.582 | 13.61 |
+| — | 15 | B | 93793.9 | 4.1427 | 4.0264 | +116.31 m/s | +63.89 m/s | 0.711 | 16.85 |
+| — | 16 | C | 100472.0 | 4.1429 | 4.0001 | +142.71 m/s | +85.39 m/s | 0.779 | 18.55 |
+| — | 20 | C | 127184.6 | 4.1312 | 3.9157 | +215.52 m/s | +145.28 m/s | 1.069 | 25.89 |
+| — | 50 | C | 327528.7 | 3.9687 | 3.6527 | +316.01 m/s | +233.94 m/s | 4.047 | 101.93 |
+
+Two rows carry the whole engineering message. **GEO** is firmly Region A: the
+infimum saving is exactly zero and the representative bi-elliptic *costs 486 m/s
+more*. **`R = 12`** is in Region B yet `B = 5R` still costs **27.5 m/s more** than
+Hohmann, because `5R = 60` is far below `B_crit = 815.8`.
+
+These enormous target radii are dimensional illustrations of a normalized result,
+not proposed Earth mission designs.
+
+## M3.6 Threshold neighbourhoods
+
+**Around `R1*` = 11.938765472645892.** No finite win exists below it (`break_even_B`
+returns "no bi-elliptic win" at `R = 11.5, 11.9`). Immediately above, `B_crit`
+explodes and the prize is negligible:
+
+| `R` | infimum saving | `B_crit` | `r_b,crit` | `t_B/t_H` at break-even |
+|---|---|---|---|---|
+| `R1*(1+1e-6)` | 0.0006 m/s | 4.17e+06 | 2.79e+10 km | ~1e10 |
+| `R1*(1+1e-4)` | 0.060 m/s | 4.17e+04 | 2.79e+08 km | ~1e7 |
+| `R1*(1+1e-2)` | 5.89 m/s | 4.19e+02 | 2.80e+06 km | ~3e3 |
+| 12.0 | 3.04 m/s | 815.82 | 5.45e+06 km | 1006.20 |
+| 13.0 | 47.87 m/s | 48.90 | 3.26e+05 km | 16.03 |
+
+**Around `R2*` = 15.581718738763179.** `B_crit -> R`, and above it every `B > R`
+wins — but the win can be worth almost nothing:
+
+| `R` | region | `B_crit/R` | saving at `B = 1.01R` | `t_B/t_H` at `B = 1.01R` |
+|---|---|---|---|---|
+| 15.0 | B | 1.2127 | **−0.154 m/s** | 3.601 |
+| 15.5 | B | 1.0256 | **−0.013 m/s** | 3.609 |
+| `R2*` | boundary | → 1 | +0.009 m/s | 3.610 |
+| 16.0 | C | — | +0.117 m/s | 3.616 |
+| 17.0 | C | — | +0.352 m/s | 3.630 |
+
+Just above `R2*`, a `B = 1.001R` transfer saves **+0.0005 m/s** while taking
+**3.58×** as long. "Every bi-elliptic beats Hohmann" is a statement about sign,
+not about magnitude.
+
+## M3.7 Model-validity warnings
+
+`model_validity(rb_km)` classifies each design:
+
+| flag | condition |
+|---|---|
+| `two_body_reasonable` | `rb < 0.1 ×` lunar distance |
+| `lunar_third_body_caution` | `rb ≥ 0.1 ×` lunar distance |
+| `two_body_invalid` | `rb ≥` lunar distance (384 400 km), or `≥` Earth Hill radius (~1.5e6 km) |
+
+The flag appears in every result table and on both trade figures.
+
+**A headline finding.** Solving `r_b,crit = lunar distance` gives
+
+```
+R = 12.834879147      (B_crit = 57.5610)
+```
+
+**Below `R ≈ 12.835` — the lower 25 % of Region B — the break-even apoapsis lies
+beyond the Moon.** At `R = 12` it is `5.45e6 km`, **14.17 lunar distances**, and
+`2 B_crit` reaches 28.3 lunar distances, well past the Earth Hill radius. In that
+range the Earth-only two-body model is not merely inaccurate, it is the wrong
+model, and the quoted numbers are mathematical extrapolations of an idealized
+model rather than trajectory designs. This project makes no claim otherwise.
+
+## M3.8 Practical trade at the two headline radius ratios
+
+**`R = 12` (Region B).** Entire mathematical prize `+3.04 m/s`, and only at
+`B -> infinity`:
+
+| strategy | `B` | saving | `t_B/t_H` | `r_b` / lunar | model |
+|---|---|---|---|---|---|
+| `B/R=1.25` | 15.0 | −22.30 m/s | 4.36 | 0.26 | caution |
+| `B/R=2` | 24.0 | **−39.02 m/s** | 7.28 | 0.42 | caution |
+| `B/R=10` | 120.0 | −15.02 m/s | 60.0 | 2.08 | invalid |
+| `B_crit` | 815.82 | **0.00 m/s** | **1006.20** | 14.17 | invalid |
+| `1.1 B_crit` | 897.40 | +0.27 m/s | 1159.59 | 15.59 | invalid |
+| `2 B_crit` | 1631.64 | +1.50 m/s | **2829.07** | 28.35 | invalid |
+
+Even at twice the break-even apoapsis the saving is **half** the theoretical
+prize, for a **2829×** time penalty at 28 lunar distances.
+
+**`R = 16` (Region C).** Every `B > R` wins, and the benefit appears far more
+readily — but still trades time, and the useful designs are already past the
+lunar distance:
+
+| strategy | `B` | saving | `t_B/t_H` | `r_b` / lunar | model |
+|---|---|---|---|---|---|
+| `B/R=1.25` | 20.0 | +5.87 m/s | 3.86 | 0.35 | caution |
+| `B/R=2` | 32.0 | +31.79 m/s | 6.86 | 0.56 | caution |
+| `B/R=5` | 80.0 | +85.39 m/s | 23.8 | 1.39 | invalid |
+| `B/R=100` | 1600.0 | +139.85 m/s | 2005 | 27.8 | invalid |
+| `B -> ∞` | — | +142.71 m/s (infimum) | ∞ | ∞ | not a transfer |
+
+## M3.9 Engineering recommendation
+
+Produced by `recommendation_for(R)` and `recommendation_summary()` from the
+recomputed thresholds. Three concepts are kept distinct: **mathematical delta-v
+dominance**, **finite-transfer practical saving**, **time and model-validity cost**.
+
+- **`R < 11.9388` (Region A).** Hohmann is delta-v superior to **every** admissible
+  bi-elliptic transfer. No intermediate apoapsis helps; its longer transfer time
+  buys nothing.
+- **`11.9388 < R < 15.5817` (Region B).** A bi-elliptic transfer beats Hohmann
+  **only if `r_b` exceeds `B_crit(R)·r_1`**. Near the lower threshold the required
+  apoapsis and transfer time are absurd for a vanishing saving — at `R = 12`,
+  3 m/s in exchange for a 1006× time penalty and an apoapsis 14 lunar distances
+  out. Below `R ≈ 12.835` the break-even apoapsis is beyond the Moon, so the model
+  does not apply there at all.
+- **`R > 15.5817` (Region C).** Every `B > R` is delta-v better than Hohmann, but
+  the **practical size** of the saving must still be weighed against transfer time.
+  Just above `R2*` a marginally bi-elliptic transfer saves under 0.01 m/s for
+  3.6× the duration.
+- **`B -> infinity` is a mathematical lower bound, never an engineering
+  recommendation** and never a realizable transfer.
+- **For ordinary Earth transfers such as 300 km LEO to GEO (`R = 6.3137`),
+  Hohmann remains firmly preferred** within this idealized coplanar impulsive
+  two-body model.
+
+Three statements this project explicitly does **not** make: that bi-elliptic is
+always better above 11.94; that 15.58 is where bi-elliptic first wins; that
+`B -> infinity` is optimal without the infimum qualification. Tests assert the
+generated recommendation text avoids the last two phrasings.
+
+## M3.10 Numerical verification and boundary findings
+
+**Independent cross-check.** Selected points were recomputed with a scratch
+mpmath vis-viva implementation that does not import `trade.py`: `R=12` at `B_crit`
+and `2 B_crit`, `R=16` at `B=1.1R`, `R=20` and `R=50` at `B=2R`, and the GEO
+classification. Delta-v, time, `r_b`, sign and region all agree; **worst relative
+residual `5.43e-13`**. (A sign comparison exactly at `B = B_crit` is undefined,
+since the saving is zero there by construction.)
+
+**Two documented precision boundaries**, both resolution limits rather than
+errors, both now covered by regression tests:
+
+1. **Near `R2*`.** `break_even_B` steps off the trivial `B = R` root with a fixed
+   relative probe of `1e-6`. Since `B_crit/R - 1 ≈ 0.306·(R2* - R)` vanishes
+   linearly, it falls below that probe once `R2* - R < 3.27e-6`, and the solver
+   then reports Region C while the threshold-based classifier still reports
+   Region B. Inside that band the break-even apoapsis is under one part in a
+   million above the target radius, so nothing physically meaningful is lost.
+2. **At `R1*` exactly.** The double-rounded `threshold_R1()` sits `2.16e-14` above
+   the true root, so at that exact `R` the true difference
+   `dv_H - dv_B_inf = 1.39e-16` is positive (verified at 50 digits) and a finite
+   break-even genuinely exists — about `4e15`, i.e. `6.9e13` lunar distances. The
+   classifier's tolerance band assigns Region A, which is the sensible engineering
+   reading. Both are defensible; the value is a meaningless extrapolation.
+
+Neither boundary required any change to M1 or M2 code. **No error was found in
+the accepted M1/M2 results.**
+
+## M3.11 Convergence and determinism
+
+- Thresholds are **bit-identical** across sweep resolutions of 80, 600 and 1500
+  global points.
+- All five result artifacts regenerate **byte-identically** (verified by repeated
+  runs and by tests that rebuild them and compare against the committed files).
+- CSV floats are written with `repr`, so every value round-trips exactly; a test
+  asserts `repr(float(value)) == value` for the sampled rows.
+- JSON uses `sort_keys=True` and contains no timestamps or machine paths.
+
+## M3.12 Artifacts and figures
+
+| Path | Content |
+|---|---|
+| `results/m3_radius_trade.csv` | endpoint-infimum envelope, 1090 rows |
+| `results/m3_finite_b_strategies.csv` | finite-`B` metrics, 162 rows over 16 radius ratios |
+| `results/m3_break_even_curve.csv` | `B_crit(R)` locus, 219 solved roots |
+| `results/m3_earth_examples.csv` | 8 Earth dimensional cases including GEO |
+| `results/m3_summary.json` | thresholds, Earth reference, `B_crit` examples, GEO, R12/R16 trades, recommendation |
+| `figures/m3_crossover_map.png` | **primary figure**: delta-v curves with inset zoom on the crossing, best-possible saving, and the `B_crit/R` locus, all over shaded Regions A/B/C |
+| `figures/m3_dv_time_trade.png` | delta-v saving vs. transfer time at `R = 12` and `R = 16`, with finite-`B` markers, `B_crit`, and the lunar-distance validity boundary |
+| `figures/m3_break_even_time_penalty.png` | Region-B divergence of `B_crit/R`, `t_B/t_H` and `r_b,crit`/lunar distance, with the fitted power laws |
+
+Every figure was visually inspected. Three defects were found and fixed during
+review: the Region B/C labels were occluded by the legend in the primary figure
+(replaced with a dedicated region-key legend); the infimum curve was clipped at
+the top of panel 1 (y-limit extended to include its `0.826` value at `R = 1.01`);
+and the `R = 16` panel of the trade figure lacked the lunar-distance warning
+(added to both panels, which matters more at `R = 16` where every `B/R ≥ 5`
+design is already beyond the Moon). `B -> infinity` appears only as a labelled
+asymptote or an arrow direction, never as a finite plotted point.
+
+## M3.13 Test suite
+
+**1026 tests, all passing under `pytest -W error`.** New files:
+`tests/test_trade.py` (118) and `tests/test_m3_artifacts.py` (16), covering the
+required items A–O: sweep-resolution
+independence, locus points being solved roots rather than interpolants,
+monotonicity, both asymptotic laws, envelope equals endpoint minimum, no finite
+interior optimum introduced, delegation to the M2 API, exact dimensional scaling,
+GEO in Region A, time ratio always above one, `B^{3/2}` growth, the `R = 12`
+penalty reproducing M2, recommendation text generated from production code, and
+artifact determinism.
+
+## M3.14 Scope guard
+
+M3 did **not** implement, and must not be read as implementing: J2 or any gravity
+harmonic; lunar or solar third-body propagation; Lambert targeting; finite burns;
+plane changes; low thrust; radiation or environment models; launch or operational
+design; a mission-specific optimizer; or CI/release packaging. This remains an
+idealized coplanar two-body impulsive trade study. The M1 Section 12 scope and
+limitations continue to apply in full.
+
+Remaining for later milestones: final portfolio packaging and polish (M4+).
+
+## M3.15 Changes to M1/M2 material
+
+**No numerical change whatsoever.** Every M1/M2 source file that computes
+anything -- `constants.py`, `_stable.py`, `hohmann.py`, `bielliptic.py`,
+`timing.py`, `dimensional.py`, `crossover.py` -- is **byte-identical** to the M2
+commit (`git diff` against `410681d` over those files is empty).
+
+`src/bielliptic_crossover/trade.py` is purely additive and is imported explicitly
+as `bielliptic_crossover.trade`, deliberately leaving the M2 public surface in
+`__init__.py` exactly as verified.
+
+The only edits to M1/M2-era files are non-numerical: the version string
+(`0.2.0 -> 0.3.0` in `pyproject.toml` and `__init__.py`, following the M1->M2
+precedent), the corresponding assertion in `tests/test_package.py`, and that
+file's scaffold list extended with the new M3 paths. Its obsolete
+`test_no_production_modules_yet` check -- written at M1 when the package was
+empty -- was removed, since the M2 modules it forbade have existed since the
+previous milestone and the surrounding tests already assert the current layout.
