@@ -1,0 +1,243 @@
+MILESTONE 2 VERIFICATION REPORT
+Bi-elliptic / Hohmann crossover
+
+Every value below is recomputed from the production package at run time.
+No crossover constant is hardcoded. Regenerating this report must produce
+byte-identical output.
+
+==============================================================================
+1. CROSSOVER THRESHOLDS (two independent formulations each)
+==============================================================================
+
+Threshold R1*  --  condition dv_H(R) = dv_B_inf(R), examined at B -> infinity
+  asks: can ANY bi-elliptic transfer beat Hohmann?   (exists B)
+  from transfer equations (brentq) : 11.9387654726458923
+  from cubic u^3-(1+2sqrt2)u^2+u+1=0  : 11.9387654726458692   (u = sqrt(R))
+  absolute difference              : 2.309e-14
+
+Threshold R2*  --  condition d(dv_B)/dB = 0 at B = R+, examined at B -> R+
+  asks: do ALL bi-elliptic transfers beat Hohmann?   (for all B)
+  from slope condition (brentq)    : 15.5817187387631790
+  from cubic R^3-15R^2-9R-1=0      : 15.5817187387631879
+  absolute difference              : 8.882e-15
+
+  separation R2* - R1*             : 3.6429532661172868
+
+Residual checks at the recomputed roots:
+  dv_H(R1*) - dv_B_inf(R1*)        : +0.000e+00
+  d(dv_B)/dB at (R2*, R2*)         : -8.674e-19
+  R2*^3 - 15 R2*^2 - 9 R2* - 1     : -2.274e-13
+
+==============================================================================
+2. EARTH REFERENCE CASE
+==============================================================================
+
+  mu_Earth                         : 398600.4418000 km^3/s^2
+  R_Earth (mean equatorial RADIUS) : 6378.1363000 km
+  initial ALTITUDE h1              : 300.0000000 km
+  initial RADIUS r1                : 6678.1363000 km
+  initial circular speed v1        : 7.72576063698292 km/s
+
+  Threshold radii (RADIUS ratio converted to this reference case):
+    R1*: R = 11.938765472646  ->  r2 = 79728.703080 km  (altitude 73350.566780 km)
+    R2*: R = 15.581718738763  ->  r2 = 104056.841526 km  (altitude 97678.705226 km)
+
+  GEO (r2 = 42164 km) corresponds to R = 6.313737562
+    classification: hohmann_only
+
+==============================================================================
+3. NORMALIZED DELTA-V COMPARISON (units of v1)
+==============================================================================
+
+     R          dv_H    dv_B(B=2R)    dv_B(B=5R)   dv_B(B=1e6)      dv_B_inf    better               region
+--------------------------------------------------------------------------------------------------------------
+   2.0    0.28445705    0.46632139    0.60189809    0.70710566    0.70710678   Hohmann         hohmann_only
+   5.0    0.48000915    0.54094283    0.57688720    0.59945496    0.59945550   Hohmann         hohmann_only
+  10.0    0.52978752    0.54261935    0.54594466    0.54519951    0.54519939   Hohmann         hohmann_only
+  12.0    0.53417987    0.53923048    0.53773598    0.53378705    0.53378672    bi-ell   large_B_bielliptic
+  15.0    0.53621819    0.53385750    0.52794811    0.52116366    0.52116304    bi-ell   large_B_bielliptic
+  16.0    0.53623939    0.53211454    0.52518686    0.51776766    0.51776695    bi-ell       all_bielliptic
+  20.0    0.53473136    0.52563061    0.51592650    0.50683557    0.50683453    bi-ell       all_bielliptic
+  50.0    0.51369584    0.49665076    0.48341568    0.47279508    0.47279221    bi-ell       all_bielliptic
+
+Note: B = 2R and B = 5R are arbitrary samples, NOT optima. There is no
+finite interior optimum in B (see section 6).
+
+==============================================================================
+4. BURN BREAKDOWN AND DIRECTIONS
+==============================================================================
+
+Hohmann (both impulses prograde):
+     R       dv1_bar       dv2_bar         total
+------------------------------------------------
+   2.0    0.15470054    0.12975651    0.28445705
+   5.0    0.29099445    0.18901471    0.48000915
+  10.0    0.34839972    0.18138779    0.52978752
+  12.0    0.35873244    0.17544743    0.53417987
+  15.0    0.36930639    0.16691180    0.53621819
+  16.0    0.37198868    0.16425071    0.53623939
+  20.0    0.38013112    0.15460024    0.53473136
+  50.0    0.40028008    0.11341575    0.51369584
+
+Bi-elliptic at B = 5R (burns 1 and 2 prograde, burn 3 RETROGRADE;
+magnitudes are positive by convention, direction is stated not signed):
+     R       dv1_bar       dv2_bar       dv3_bar         total
+--------------------------------------------------------------
+   2.0    0.34839972    0.04773421    0.20576415    0.60189809
+   5.0    0.38675049    0.06000003    0.13013667    0.57688720
+  10.0    0.40028008    0.05364406    0.09202052    0.54594466
+  12.0    0.40257375    0.05115937    0.08400286    0.53773598
+  15.0    0.40487872    0.04793495    0.07513444    0.52794811
+  16.0    0.40545674    0.04698151    0.07274861    0.52518686
+  20.0    0.40719509    0.04366308    0.06506834    0.51592650
+  50.0    0.41139359    0.03086926    0.04115283    0.48341568
+
+==============================================================================
+5. BREAK-EVEN APOAPSIS RATIO B_crit(R)
+==============================================================================
+
+The trivial root at B = R (where equality holds by construction) is
+explicitly excluded. Region A has no break-even B; Region C has none
+either, because every B > R already wins and the boundary B = R is open.
+
+     R               regime               B_crit   rb_crit/r2   rb_crit alt [km]    residual
+--------------------------------------------------------------------------------------------
+   2.0         hohmann_only                    -            -                  -           -
+   5.0         hohmann_only                    -            -                  -           -
+  10.0         hohmann_only                    -            -                  -           -
+  11.9         hohmann_only                    -            -                  -           -
+  12.0   large_B_bielliptic       815.8202504753    67.985021         5.4418e+06   +0.00e+00
+  13.0   large_B_bielliptic        48.9048433284     3.761911         3.2022e+05   +0.00e+00
+  14.0   large_B_bielliptic        26.1046112824     1.864615         1.6795e+05   +0.00e+00
+  15.0   large_B_bielliptic        18.1902815122     1.212685         1.1510e+05   +0.00e+00
+  15.5   large_B_bielliptic        15.8968710115     1.025605         9.9783e+04   +0.00e+00
+  16.0       all_bielliptic                    -            -                  -           -
+  20.0       all_bielliptic                    -            -                  -           -
+  50.0       all_bielliptic                    -            -                  -           -
+
+Required regression targets (R = 12, 13, 14, 15), full production precision:
+  B_crit(12) = 815.8202504753092
+  B_crit(13) = 48.90484332838889
+  B_crit(14) = 26.10461128235042
+  B_crit(15) = 18.19028151222189
+
+==============================================================================
+6. STRUCTURAL VERIFICATION: NO FINITE INTERIOR MINIMUM
+==============================================================================
+
+Dense logarithmic sweep in B for each R. Any interior stationary point
+must be a MAXIMUM. The infimum is always an endpoint:
+    inf over B of dv_B(R,B) = min( dv_H(R), dv_B_inf(R) )
+
+     R   samples    B/R max  interior min  interior max      B at max   infimum at
+----------------------------------------------------------------------------------
+   2.0      4001    1.0e+10             0             0             -        B->R+
+   5.0      4001    1.0e+10             0             0             -        B->R+
+  10.0      4001    1.0e+10             0             1     66.450767        B->R+
+  12.0      4001    1.0e+10             0             1     26.404701       B->inf
+  14.0      4001    1.0e+10             0             1     18.455594       B->inf
+  15.0      4001    1.0e+10             0             1     16.447173       B->inf
+  16.0      4001    1.0e+10             0             0             -       B->inf
+  20.0      4001    1.0e+10             0             0             -       B->inf
+  50.0      4001    1.0e+10             0             0             -       B->inf
+ 100.0      4001    1.0e+10             0             0             -       B->inf
+
+Total interior minima found across all R above: 
+    0   (expected 0)
+
+==============================================================================
+7. NORMALIZED vs INDEPENDENT DIMENSIONAL VIS-VIVA RESIDUALS
+==============================================================================
+
+The dimensional path evaluates every apsis speed directly from vis-viva
+and shares no algebra with the normalized closed forms.
+
+     R        B/R   |direct/v1 - normalized|     relative
+----------------------------------------------------------
+   2.0   1.000001                  1.110e-16    3.903e-16
+   2.0   2.000000                  0.000e+00    0.000e+00
+   2.0 1000.000000                  0.000e+00    0.000e+00
+  12.0   1.000001                  1.110e-16    2.078e-16
+  12.0   2.000000                  0.000e+00    0.000e+00
+  12.0 1000.000000                  0.000e+00    0.000e+00
+  50.0   1.000001                  1.110e-16    2.161e-16
+  50.0   2.000000                  1.110e-16    2.235e-16
+  50.0 1000.000000                  2.220e-16    4.696e-16
+
+  worst absolute residual over the full grid : 2.220e-16
+  worst relative residual over the full grid : 4.696e-16
+
+  worst Hohmann absolute residual            : 1.110e-16
+
+==============================================================================
+8. DIMENSIONAL EARTH EXAMPLES
+==============================================================================
+
+Final ALTITUDE is a conversion from the universal RADIUS RATIO result:
+    h2 = R * r1 - R_Earth
+
+     R        h2 [km]   dv_H [km/s]  dv_B_inf [km/s]  saving [m/s]  saving [%]
+------------------------------------------------------------------------------
+   2.0      6978.1363      2.197647         5.462938    -3265.2907   -148.5812
+   5.0     27012.5452      3.708436         4.631250     -922.8139    -24.8842
+  10.0     60403.2267      4.093012         4.212080     -119.0684     -2.9091
+  12.0     73759.4993      4.126946         4.123908        3.0374      0.0736
+  15.0     93793.9082      4.142693         4.026381      116.3125      2.8077
+  16.0    100472.0445      4.142857         4.000144      142.7136      3.4448
+  20.0    127184.5897      4.131206         3.915682      215.5242      5.2170
+  50.0    327528.6787      3.968691         3.652679      316.0117      7.9626
+
+The saving column is the MAXIMUM theoretically available prize, reached
+only as B -> infinity, i.e. only in infinite transfer time.
+
+==============================================================================
+9. TRANSFER TIMES
+==============================================================================
+
+     R     t_H [d]   t_B(2R) [d]   t_B(5R) [d]         B_crit   t_B(B_crit) [d]     t_B/t_H
+------------------------------------------------------------------------------------------
+   2.0    0.057741      0.287557      0.867341           none                 -           -
+   5.0    0.163317      1.050978      3.299154           none                 -           -
+  10.0    0.405410      2.895327      9.211798           none                 -           -
+  12.0    0.520859      3.789305     12.083165     815.820250        524.087650   1006.1987
+  15.0    0.711189      5.272466     16.850379      18.190282          3.058990      4.3012
+  16.0    0.778894      5.802018     18.553193      16.000000          2.790441      3.5826
+  20.0    1.069385      8.081844     25.886970      20.000000          3.880607      3.6288
+  50.0    4.047254     31.694087    101.930526      50.000000         15.159585      3.7456
+
+The B = R degeneracy (delta-v and time degenerate DIFFERENTLY):
+  dv_B(R,R) = dv_H(R) exactly, but
+  t_B(R,R) = t_H(R) + pi*R^(3/2) in units of t_star = sqrt(r1^3/mu),
+  i.e. the Hohmann time plus HALF THE PERIOD of the final circular orbit,
+  because ellipse 2 degenerates to that circular orbit and the path still
+  coasts a half revolution of it.
+
+     R        t_bar_H    t_bar_B(B=R)         excess       pi*R^1.5
+------------------------------------------------------------------
+   2.0     5.77147424     14.65724011     8.88576588     8.88576588
+  12.0    52.06188729    182.65544152   130.59355422   130.59355422
+  16.0    77.85352145    278.91545128   201.06192983   201.06192983
+  50.0   404.53876412   1515.25949866  1110.72073454  1110.72073454
+
+==============================================================================
+10. THE REGION-B TRADE, QUANTIFIED (R = 12)
+==============================================================================
+
+  region                                : large_B_bielliptic
+  entire theoretical prize (B -> inf)   : 3.0374 m/s
+  break-even B_crit                     : 815.820250
+  break-even apoapsis RADIUS            : 5.4482e+06 km
+  break-even apoapsis ALTITUDE          : 5.4418e+06 km
+  ... as a multiple of lunar distance   : 14.17
+  Hohmann transfer time                 : 0.520859 d
+  transfer time merely to BREAK EVEN    : 524.0877 d
+  time penalty factor                   : 1006.20x
+
+  At break-even the delta-v saving is exactly zero by definition; the
+  full prize above requires B -> infinity and therefore infinite time.
+  This is why the deliverable must be an engineering trade, not a
+  minimization. The recommendation itself is Milestone 6, not M2.
+
+==============================================================================
+END OF REPORT
+==============================================================================

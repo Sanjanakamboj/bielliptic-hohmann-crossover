@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bielliptic-crossover"
-version = "0.1.0"
+version = "0.2.0"
 description = "Crossover analysis of bi-elliptic versus Hohmann impulsive orbit transfers"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,10 +16,11 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Astronomy",
 ]
-dependencies = []
+dependencies = ["numpy>=1.24", "scipy>=1.10"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
+figures = ["matplotlib>=3.7"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }

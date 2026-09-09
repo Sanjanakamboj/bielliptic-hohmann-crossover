@@ -4,12 +4,18 @@
 two-impulse Hohmann transfer, for raising a spacecraft from one circular orbit to a
 much higher circular one?**
 
-**Status: Milestone 1 complete** — problem definition, analytical derivation, hand
-calculations and verification plan. No solver, sweep, optimizer or plotting code is
-implemented yet; that is Milestone 2 onward.
+**Status: Milestone 2 complete** — the analytical derivation of M1 is now tested
+production code: transfer equations, an independent dimensional vis-viva path,
+crossover and break-even solvers, transfer times, and an **882-test** verification
+suite passing under `pytest -W error`.
 
-The full derivation, every hand calculation, the verification matrix and the
-regression targets live in **[DESIGN.md](DESIGN.md)**.
+The derivation, hand calculations, verification matrix and M2 implementation notes
+live in **[DESIGN.md](DESIGN.md)**. Reproducible numbers are in
+**[results/m2_verification_report.txt](results/m2_verification_report.txt)**.
+
+Still to come: the final portfolio crossover figure (M4) and the engineering
+recommendation (M6). No sweep, perturbation, finite-burn or mission-optimizer code
+exists yet.
 
 ---
 
@@ -22,6 +28,14 @@ bare minimization.
 
 Portfolio deliverable: a crossover radius-ratio plot plus an engineering
 recommendation.
+
+```python
+>>> from bielliptic_crossover import threshold_R1, threshold_R2, break_even_B
+>>> round(threshold_R1(), 10), round(threshold_R2(), 10)
+(11.9387654726, 15.5817187388)
+>>> break_even_B(12.0).B_crit
+815.8202504753092
+```
 
 ---
 
@@ -89,7 +103,8 @@ questions** and are computed from **opposite ends** of the `B` domain.
 
 | | Threshold #1 | Threshold #2 |
 |---|---|---|
-| Value (recomputed here) | `R1* = 11.938765472645870716` | `R2* = 15.581718738763179213` |
+| Value (recomputed here) | `R1* = 11.9387654726458923` | `R2* = 15.5817187387631790` |
+| Independent second path | `11.9387654726458692` (cubic) | `15.5817187387631879` (cubic) |
 | Condition | `dv_bar_H(R) = dv_bar_B_inf(R)` | `∂dv_bar_B/∂B = 0` at `B = R+` |
 | Endpoint examined | `B -> infinity` | `B -> R+` |
 | Exact form | `u³ − (1+2√2)u² + u + 1 = 0`, `u = √R` | `R³ − 15R² − 9R − 1 = 0` |
@@ -99,10 +114,12 @@ questions** and are computed from **opposite ends** of the `B` domain.
 **`R1*` is where the bi-elliptic family first contains a winner. `R2*` is where the
 bi-elliptic family contains nothing but winners.**
 
-Both values were derived and solved independently here — three or four separate
-formulations each, including exact algebraic characterizations — and only then
-compared against the classical textbook values (~11.94 and ~15.58) as a sanity
-check. **Literature numbers are never used as production constants.**
+Both values are **recomputed at run time by two independent solver paths each** —
+root-finding on the transfer equations, and the exact polynomial characterization —
+which agree to `2.3e-14` and `8.9e-15` respectively. They were compared against the
+classical textbook values (~11.94 and ~15.58) only after independent derivation.
+**No literature number appears as a production constant**; a test asserts that
+`constants.py` contains no crossover value at all.
 
 ### The three regions
 
@@ -112,11 +129,28 @@ check. **Literature numbers are never used as production constants.**
 | **B** | `11.9388 < R < 15.5817` | Bi-elliptic wins **only** for `B > B_crit(R)`. `B_crit -> ∞` as `R -> R1*`; `B_crit -> R` as `R -> R2*`. |
 | **C** | `R > 15.5817` | Bi-elliptic wins for **every** `B > R`. |
 
-A structural result established in M1: `dv_bar_B(R, ·)` has **no interior local
-minimum** in `B`, so the best achievable bi-elliptic delta-v is always
-`min(dv_bar_H, dv_bar_B_inf)` — an endpoint value, never a finite interior optimum.
-See [DESIGN.md §6](DESIGN.md) for the proof sketch and the numerical scan, including
-a correction to a plausible-but-empty alternative definition of Region B.
+A structural result established in M1 and **re-verified numerically in M2**:
+`dv_bar_B(R, ·)` has **no interior local minimum** in `B`, so the best achievable
+bi-elliptic delta-v is always `min(dv_bar_H, dv_bar_B_inf)` — an endpoint value,
+never a finite interior optimum. Dense sweeps over `R` from 1.5 to 200 found
+**zero** interior minima; every interior turning point present is a *maximum*.
+An optimizer reporting a finite interior optimum is a bug, not a discovery.
+
+### Break-even apoapsis ratio in Region B
+
+In Region B the bi-elliptic transfer wins only once the intermediate apoapsis is
+large enough. `break_even_B(R)` solves for that threshold, explicitly excluding the
+trivial root at `B = R` (where equality holds by construction):
+
+| `R` | `B_crit` | `rb_crit / r2` | `rb_crit` altitude (Earth ref) |
+|---|---|---|---|
+| 12 | 815.8202504753 | 68.0 | 5.44e+06 km |
+| 13 | 48.9048433284 | 3.76 | 3.20e+05 km |
+| 14 | 26.1046112824 | 1.86 | 1.68e+05 km |
+| 15 | 18.1902815122 | 1.21 | 1.15e+05 km |
+
+Region A returns "no bi-elliptic win"; Region C returns no finite root either,
+because every `B > R` already wins and the boundary `B = R` is open.
 
 ## Representative Earth example
 
@@ -138,7 +172,7 @@ Threshold radii for this case: `R1*` → `r2 = 79728.7 km` (altitude 73350.6 km)
 **GEO from a 300 km parking orbit is `R = 6.31`** — deep in Region A. For the most
 commonly flown high-orbit transfer, Hohmann simply wins.
 
-## Delta-v is not the whole story
+## Why delta-v savings alone are insufficient
 
 `B -> infinity` is a **mathematical asymptote with infinite transfer time**, never a
 flight recommendation. Transfer duration scales as `B^(3/2)`:
@@ -150,17 +184,38 @@ flight recommendation. Transfer duration scales as `B^(3/2)`:
 | 20 | 1.07 d | 20.0 | 3.88 d | 3.63× |
 | 50 | 4.05 d | 50.0 | 15.16 d | 3.75× |
 
-At `R = 12` the entire theoretical prize is 3 m/s, and merely breaking even costs a
-1006× increase in transfer time. The final recommendation must therefore be an
-**engineering trade**, not "choose the minimum delta-v".
+At `R = 12` the numbers are stark, and they come straight from the production code:
+
+| Quantity | Value |
+|---|---|
+| entire theoretical prize (`B → ∞`) | **3.04 m/s** |
+| worst case at moderate `B` (`B/R ≈ 2.2`) | **−39.4 m/s** (bi-elliptic *worse*) |
+| break-even apoapsis radius | 5.45e+06 km — **14.2× lunar distance** |
+| time merely to break even | **524 days** vs. 0.52 days |
+
+A 3 m/s saving sits inside the noise of launch dispersion, navigation and
+finite-burn losses; the apoapsis it demands is not an Earth orbit in any
+operational sense, and at that distance the two-body model is not merely
+inaccurate but the wrong model. The final recommendation must therefore be an
+**engineering trade**, not "choose the minimum delta-v" — and that recommendation
+is Milestone 6, deliberately not asserted here.
+
+### A subtlety the code makes explicit
+
+Delta-v and transfer time degenerate **differently** at `B = R`. The delta-v
+reduces exactly to Hohmann, but the time does not:
+`t_B(R,R) = t_H(R) + π·R^{3/2}·t_star`, i.e. the Hohmann time *plus half the period
+of the final circular orbit*, because ellipse 2 becomes that circular orbit and the
+path still coasts half a revolution of it. See
+`bielliptic_time_excess_at_B_equals_R`.
 
 ## Roadmap
 
 | Milestone | Content | Status |
 |---|---|---|
-| **M1** | Problem definition, analytical derivation, hand calculations, verification plan | **complete** |
-| M2 | Production transfer solver (Hohmann + bi-elliptic), normalized and dimensional, with the DESIGN.md §9 verification suite | pending |
-| M3 | Parameter sweeps in `R` and `B`; `B_crit(R)`; independent root-finding for both thresholds | pending |
+| M1 | Problem definition, analytical derivation, hand calculations, verification plan | complete |
+| **M2** | Production transfer equations, dimensional cross-checks, crossover and break-even solvers, verification suite | **complete** |
+| M3 | Parameter sweeps and sensitivity analysis in `R` and `B` | pending |
 | M4 | Crossover radius-ratio plot and supporting figures | pending |
 | M5 | Transfer-time trade analysis and combined delta-v / time figures | pending |
 | M6 | Engineering recommendation and portfolio write-up | pending |
@@ -177,25 +232,48 @@ debris-environment model; no mission-specific operational optimization.
 **No flight-operations or mission-optimality claims are made.** Full list in
 [DESIGN.md §12](DESIGN.md).
 
+## M2 verification artifacts
+
+- **[results/m2_verification_report.txt](results/m2_verification_report.txt)** —
+  ten-section numerical report, regenerated from production code and
+  byte-identical across runs (checked by a test).
+- **[figures/m2_fig1_excess_vs_B.png](figures/m2_fig1_excess_vs_B.png)** —
+  `dv_bar_B − dv_bar_H` against `B/R`, making the Region A/B/C structure and the
+  maximum-only turning points directly visible.
+- **[figures/m2_fig2_time_trade_R12.png](figures/m2_fig2_time_trade_R12.png)** —
+  the delta-v versus transfer-time trade at `R = 12`.
+
+These are *diagnostic* figures. The portfolio crossover plot is M4.
+
 ## Repository layout
 
 ```
-README.md                            this file
-DESIGN.md                            M1 derivation, hand calculations, verification plan
-pyproject.toml                       src-layout package, pytest configured for src/
-.gitignore
-src/bielliptic_crossover/__init__.py package scaffold (version only)
-tests/test_placeholder.py            M1 scaffold tests
-scripts/                             (empty) M2+ analysis drivers
-figures/                             (empty) M4+ generated plots
-results/                             (empty) M3+ numerical outputs
+README.md                             this file
+DESIGN.md                             M1 derivation + M2 implementation notes
+pyproject.toml                        src-layout package, pytest configured for src/
+src/bielliptic_crossover/
+    __init__.py                       public API, version
+    constants.py                      physical constants (NO crossover constants)
+    _stable.py                        cancellation-free sqrt(1+x)-1
+    hohmann.py                        two-impulse transfer
+    bielliptic.py                     three-impulse transfer + infinite-B limit
+    timing.py                         transfer times, B=R degeneracy
+    dimensional.py                    independent direct vis-viva path
+    crossover.py                      thresholds, break-even B, classifier, structure scan
+tests/                                882 tests across 9 files
+scripts/m2_verification_report.py     regenerates the numerical report
+scripts/m2_diagnostic_figures.py      regenerates both diagnostic figures
+figures/                              M2 diagnostic figures
+results/                              M2 verification report
 ```
 
 ## Development
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,figures]"
 pytest -W error
+python scripts/m2_verification_report.py
+python scripts/m2_diagnostic_figures.py
 ```
 
-Version `0.1.0`.
+Version `0.2.0`. Runtime dependencies: `numpy`, `scipy` (`matplotlib` for figures only).

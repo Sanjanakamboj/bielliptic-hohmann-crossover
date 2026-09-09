@@ -825,3 +825,301 @@ engineering discussion of when the result could matter.
 | M4 | Crossover radius-ratio plot and supporting figures | pending |
 | M5 | Transfer-time trade analysis and combined delta-v/time figures | pending |
 | M6 | Engineering recommendation and portfolio write-up | pending |
+
+---
+---
+
+# DESIGN — Milestone 2
+
+**Production transfer equations, dimensional cross-checks, break-even solver, and
+numerical verification.**
+
+Status: **M2 complete.** Everything in the M1 sections above is unchanged; no M1
+headline value was altered. M2 turns that derivation into tested production code
+and re-derives every number from it. The final portfolio crossover figure and the
+engineering recommendation remain out of scope (M4 and M6).
+
+## M2.1 Production API
+
+`src`-layout package `bielliptic_crossover`, version `0.2.0`.
+
+| Module | Contents |
+|---|---|
+| `constants.py` | `MU_EARTH`, `R_EARTH`, `H1_REFERENCE`, `R1_REFERENCE`, `V1_REFERENCE`, `MU_MARS`, `R_MARS`, `altitude_from_radius`, `radius_from_altitude`. **Contains no crossover constants** — a test asserts the strings `11.93` / `15.58` never appear in it. |
+| `_stable.py` | `sqrt1pm1(x) = sqrt(1+x) - 1` evaluated without cancellation. |
+| `hohmann.py` | `hohmann_burns_normalized(R)`, `hohmann_total_normalized(R)`, `hohmann_total_dv(mu, r1, r2)`. |
+| `bielliptic.py` | `bielliptic_burns_normalized(R, B)`, `bielliptic_total_normalized(R, B)`, `bielliptic_infinite_limit_normalized(R)`, `bielliptic_total_derivative_wrt_B(R, B)`, `burn_directions()`. |
+| `timing.py` | `time_scale`, `hohmann_transfer_time[_normalized]`, `bielliptic_transfer_time[_normalized]`, `bielliptic_time_excess_at_B_equals_R`. |
+| `dimensional.py` | Independent direct-vis-viva path: `vis_viva_speed`, `circular_speed`, `hohmann_burns_direct`, `hohmann_total_dv_direct`, `bielliptic_burns_direct`, `bielliptic_total_dv`. Exposes signed velocity changes and every apsis speed so burn direction can be checked physically. |
+| `crossover.py` | `threshold_R1`, `threshold_R1_from_polynomial`, `threshold_R2`, `threshold_R2_from_cubic`, `break_even_B`, `BreakEvenResult`, `classify_radius_ratio`, `scan_B_structure`, `BStructure`, `bielliptic_infimum_normalized`, `B_RATIO_RESOLVABLE_MAX`, regime constants. |
+
+Domain rules are enforced, not assumed: `R >= 1`, `B >= R`, positive `mu` and `r1`,
+`r2 >= r1`, `rb >= r2`. NaN and infinity are rejected with explicit messages —
+`bielliptic_total_normalized(R, inf)` directs the caller to the analytical limit
+instead of silently returning a large-`B` approximation.
+
+**Burn magnitudes are always returned positive; direction is documented, never
+encoded as a sign.** `burn_directions()` returns
+`("prograde", "prograde", "retrograde")`.
+
+## M2.2 Cancellation-free formulation
+
+Every burn has the shape `sqrt(1+x) - 1` for an `x` that vanishes at a physically
+interesting boundary. The production code uses the exact algebraic rewrite
+`sqrt(1+x) - 1 = x / (sqrt(1+x) + 1)`:
+
+| Burn | `x` |
+|---|---|
+| Hohmann 1 | `(R-1)/(1+R)` |
+| Hohmann 2 | `(1-R)/(1+R)`, scaled by `-1/sqrt(R)` |
+| Bi-elliptic 1 | `(B-1)/(1+B)` |
+| Bi-elliptic 2 | `B(R-1)/(R+B)`, scaled by `sqrt(2/(B(1+B)))` |
+| Bi-elliptic 3 | `(B-R)/(R+B)`, scaled by `1/sqrt(R)` |
+
+These are identities, not approximations. Two consequences are load-bearing:
+
+- **`dv3` is exactly `0.0` at `B = R`** (since `sqrt1pm1(0) == 0`), so burn 3
+  vanishes exactly rather than to a tolerance.
+- **`dv1` at `B = R` is bitwise identical to Hohmann's first impulse**, because
+  the two reduce to the same expression.
+
+The `B = R` total identity `dv_bar_B(R,R) = dv_bar_H(R)` is exact mathematically
+and agrees to **at most 1 ulp** in floating point over `R ∈ [1.5, 500]` — burn 2
+is reached by two different but algebraically equal expressions, so the last bit
+may differ. Tests assert `<= 2 ulp` rather than claiming bitwise equality.
+
+## M2.3 Thresholds recomputed
+
+No crossover constant is hardcoded. Each threshold is solved twice by paths that
+share no algebra.
+
+| | `R1*` | `R2*` |
+|---|---|---|
+| Path 1 (transfer equations) | `brentq` on `dv_bar_H(R) - dv_bar_B_inf(R)` → `11.9387654726458923` | `brentq` on `d(dv_bar_B)/dB` at `B=R` → `15.5817187387631790` |
+| Path 2 (exact polynomial) | `u³-(1+2√2)u²+u+1=0`, `u=√R` → `11.9387654726458692` | `R³-15R²-9R-1=0` → `15.5817187387631879` |
+| Difference between paths | `2.309e-14` | `8.882e-15` |
+| M1 accepted value | `11.938765472645870716` | `15.581718738763179213` |
+
+Both agree with M1 to the limit of double precision. Residuals at the recomputed
+roots: `dv_bar_H(R1*) - dv_bar_B_inf(R1*) = 0.000e+00`, and
+`d(dv_bar_B)/dB|(R2*,R2*) = -8.674e-19`.
+
+Separation `R2* - R1* = 3.6429532661172868`.
+
+The analytical `d/dB` is cross-checked against **complex-step differentiation**,
+which shares none of the hand algebra and suffers no subtractive cancellation;
+they agree to `1e-12` relative across the tested grid.
+
+## M2.4 Break-even `B_crit(R)`
+
+`break_even_B(R)` returns a `BreakEvenResult` carrying the regime, the nontrivial
+`B_crit`, and the infimum of the winning set.
+
+**The trivial root at `B = R` is explicitly excluded.** `dv_bar_B(R,R) = dv_bar_H(R)`
+holds by construction, so a naive root-finder would return it. The solver probes
+at `B = R(1 + 1e-6)`, expands geometrically until the excess changes sign, and
+solves in `log B` (the root spans orders of magnitude). It asserts `B_crit > R`
+before returning.
+
+| Region | Behaviour | `B_crit` | `winning_B_infimum` |
+|---|---|---|---|
+| A (`R < R1*`) | Hohmann beats every `B` | `None` | `None` |
+| B (`R1* < R < R2*`) | only `B > B_crit` wins | finite root | `B_crit` |
+| C (`R > R2*`) | every `B > R` wins | `None` | `R` (open boundary, not attained) |
+
+Region C returns no finite root because none exists: the winning set is the open
+interval `(R, ∞)`, whose infimum `B = R` is not attained. Manufacturing a root
+there would be fiction. If `R` is so close to `R1*` that `B_crit` exceeds the
+search ceiling (`1e30`), the solver **raises** rather than misreporting Region A.
+
+Production values (residual `dv_bar_B(R,B_crit) - dv_bar_H(R)` is exactly `0.0`):
+
+| `R` | `B_crit` | `rb_crit/r2` | `rb_crit` altitude (Earth ref) |
+|---|---|---|---|
+| 12 | `815.8202504753092` | 67.985021 | 5.4418e+06 km |
+| 13 | `48.90484332838889` | 3.761911 | 3.2022e+05 km |
+| 14 | `26.10461128235042` | 1.864615 | 1.6795e+05 km |
+| 15 | `18.19028151222189` | 1.212685 | 1.1510e+05 km |
+
+M1 quoted `B_crit(12) ≈ 815.8`. The production value `815.8202504753092` confirms
+it; the M1 rounded figure was never assumed to be exact.
+
+## M2.5 Numerical stability audit
+
+Findings, all reproduced as tests in `tests/test_stability.py`.
+
+**Finding 1 — a genuine defect in the naive burn-3 formula.** Evaluating
+`sqrt(2B/(R(R+B))) - 1/sqrt(R)` directly loses precision as `B -> R+`: relative
+error `5.8e-12` at `B/R-1 = 1e-4`, `9.2e-4` at `1e-12`, and `8.3e-2` at `1e-14`.
+At exactly `B = R` it returns a **strictly negative** value — a physically
+impossible negative burn magnitude — for **58 of 398** sampled `R` in `[1.5, 200]`
+(e.g. `-1.110e-16` at `R = 1.5`). The production form returns exactly `0.0` in all
+398 cases. This matters because the break-even solver must distinguish the trivial
+`B = R` root from a real one, and sign noise there is precisely the failure mode.
+
+**Finding 2 — `R -> 1+` is limited by input representation, not by algebra.**
+Against a 50-digit reference evaluated at the *same stored double*, the production
+form holds ~`1e-16` relative error at every `R-1` from `1e-2` to `1e-14`, while the
+naive form degrades to `3.7e-14` and `6.7e-11`. Separately, storing `R = 1 + 1e-12`
+as a double reproduces `R - 1` to only ~4 significant digits (relative error
+`8.9e-5`), and since `dv ≈ (R-1)/2` the result inherits exactly that. **No
+reformulation can recover information the input no longer carries**; this is a
+parameterization limit, and it is documented rather than hidden.
+
+**Finding 3 — the large-`B` tail becomes unresolvable in double precision.** The
+residual `dv_bar_B - dv_bar_B_inf ≈ (sqrt(R)-3)/(sqrt(2)B)` eventually falls below
+a few ulp of the value itself, after which the curve is flat to machine precision.
+`B_RATIO_RESOLVABLE_MAX = 1e10` records the generic safe limit (at `R = 20` the
+residual is still ~47,000 ulp there). **`R = 9` is the worst case**: the leading
+coefficient `sqrt(R) - 3` vanishes identically, so the tail decays as `1/B²`
+(measured log-ratio `2.000` per decade) and reaches the noise floor by `B/R ≈ 1e8`.
+
+Consequently `scan_B_structure` takes a `noise_ulps` parameter (default 8) and
+requires a turning point to clear the rounding noise floor before counting it.
+With the floor disabled and a sweep to `B/R = 1e14`, `R = 9` reports **278 spurious
+"minima" and 222 "maxima" that are pure rounding noise**; with the floor on, it
+correctly reports zero. This was diagnosed during M2 and is the reason the
+detector is noise-aware — it is a measurement limit, **not** a contradiction of the
+M1 structural result.
+
+**Finding 4 — extreme scales.** Across `mu ∈ [1e2, 1e20]` and `r1 ∈ [1e1, 1e12]`
+the normalized and direct-dimensional paths agree to `9.8e-16` relative.
+
+## M2.6 The `B = R` time degeneracy
+
+**Delta-v and transfer time degenerate differently at `B = R`, and the code says so.**
+
+`dv_bar_B(R,R) = dv_bar_H(R)` exactly. But ellipse 2 degenerates into the *circular
+target orbit*, and the bi-elliptic path still coasts a half revolution of it before
+reaching the nominal periapsis point. Hence
+
+```
+t_bar_B(R, R) = t_bar_H(R) + pi * R^(3/2)
+```
+
+— the Hohmann time **plus half the period of the final circular orbit**, verified
+exactly at `R = 2, 12, 16, 50`. The extra term is loiter the Hohmann transfer never
+flies. `t_bar_B` is continuous in `B` down to `B = R`; it simply does not converge
+to `t_bar_H` there.
+
+This is exposed as `bielliptic_time_excess_at_B_equals_R(R)` so the subtlety is a
+testable quantity rather than a footnote, and a test asserts the inequality
+`t_bar_B(R,R) > t_bar_H(R)` specifically to stop it being "fixed" into a false
+equality later.
+
+## M2.7 Structural verification: no finite interior minimum
+
+Re-derived numerically, not assumed from M1. Across `R ∈ {2, 5, 8, 9, 10, 12, 14,
+15, 16, 20, 50, 100}` plus a sweep of `R` from 1.5 to 200 in steps of 2.5, with
+4001 logarithmically spaced `B` samples per `R`:
+
+- **interior local minima found: 0** in every case;
+- at most one interior stationary point, always a **maximum**, present only for
+  `9 < R < R2*` (e.g. `B_max ≈ 66.45` at `R = 10`, `26.40` at `R = 12`);
+- an independent brute-force argmin over 3001 samples lands at a domain **endpoint**
+  in every case;
+- the shape matches the M1 endpoint-slope table exactly: increasing for `R < 9`,
+  up-then-down for `9 < R < R2*`, decreasing for `R > R2*`; the combination
+  (negative near-slope, positive far-slope) never occurs.
+
+Hence `inf_B dv_bar_B(R,B) = min(dv_bar_H(R), dv_bar_B_inf(R))`, exposed as
+`bielliptic_infimum_normalized(R)` together with which endpoint attains it.
+
+A regression test also re-confirms M1 Section 6.3 directly: wherever
+`dv_bar_B_inf(R) >= dv_bar_H(R)`, no finite `B` beats Hohmann either — **a finite-`B`
+win forces an infinite-`B` win**, so the "finite wins while infinite loses" region
+is empty.
+
+## M2.8 Verification results against the M1 plan
+
+| M1 §9 item | M2 status |
+|---|---|
+| A Hohmann limits | `dv_bar_H(1) == 0.0` exactly; `(R-1)/2` leading order; both burns positive; closed form vs. direct vis-viva to `1.1e-16` |
+| B Bi-elliptic limits | `B->R+` identity (`<= 1 ulp`, `dv3` exactly 0); `B->inf` limit; `(sqrt(R)-3)/(sqrt(2)B)` residual to `1e-4` relative; burn directions checked from actual speeds |
+| C Scaling / invariance | `dv ∝ sqrt(mu/r1)` verified by explicit scaling law; `R1*` recomputed from dimensional transfers for 5 bodies agrees to `1e-11` |
+| D Finite-`B` optimization | dense brute force confirms no interior minimum; infimum is an endpoint |
+| E Crossover roots | two independent formulations per threshold; `B_crit` bracketed, endpoints checked (`B_crit -> ∞` as `R -> R1*+`, `-> R` as `R -> R2*-`) |
+| F Continuity | refinement test: halving the grid step halves the largest jump; no NaN/overflow across 12 decades of `B`; the cancellation-prone term B2 covered by the stability tests |
+| G Time of flight | half-period formulas vs. independent `2*pi*sqrt(a^3/mu)/2` construction; normalized/dimensional agreement to `1e-14` |
+| H Dimensional round trip | normalize and recover, both directions, worst relative residual `4.7e-16` |
+| I Literature check | performed only after independent derivation; consistent with classical `~11.94` and `~15.58`; **no literature number appears as a production constant** |
+
+## M2.9 Test suite
+
+**882 tests, all passing under `pytest -W error`** (no warnings).
+
+| File | Focus |
+|---|---|
+| `tests/test_package.py` | scaffold, version, public API present, M3 API absent, no crossover constants in `constants.py` |
+| `tests/test_hohmann.py` | verification A, plus M1 table regression |
+| `tests/test_bielliptic.py` | verification B and C, complex-step derivative check, M1 table regression |
+| `tests/test_dimensional.py` | verification G and H, scale invariance across five bodies |
+| `tests/test_timing.py` | verification H, `B = R` degeneracy, `B^{3/2}` growth, M1 time-table regression |
+| `tests/test_crossover.py` | verification D, E, F: thresholds, classifier, break-even, continuity |
+| `tests/test_structure.py` | verification I: no interior minimum, shape table, resolution limit |
+| `tests/test_stability.py` | the M2.5 conditioning findings |
+| `tests/test_report.py` | report determinism and freedom from absolute paths |
+
+The M1 file `tests/test_placeholder.py` was renamed (`git mv`) to
+`tests/test_package.py` and its "no M2 API exists" assertions replaced by their M2
+counterparts. That file's M1 content remains unchanged in git history.
+
+## M2.10 Artifacts
+
+| Path | Content |
+|---|---|
+| `scripts/m2_verification_report.py` | regenerates the report from production code |
+| `results/m2_verification_report.txt` | 10-section numerical report; deterministic (byte-identical across runs, checked by test); relative paths only |
+| `scripts/m2_diagnostic_figures.py` | regenerates both figures |
+| `figures/m2_fig1_excess_vs_B.png` | `dv_bar_B - dv_bar_H` vs. `B/R`, log `x`, **symlog `y`** so no curve is clipped; Region A/B/C structure and the maximum-only turning points are directly visible; break-even crossings marked |
+| `figures/m2_fig2_time_trade_R12.png` | delta-v saving and transfer time for `R = 12`, full unclipped range |
+
+Both figures show units and normalization, use no zero suppression, and represent
+`B -> infinity` only as a labelled asymptote — never as a fake finite point.
+
+## M2.11 Headline trade, from production code
+
+For `R = 12` (Region B), Earth reference:
+
+| Quantity | Value |
+|---|---|
+| entire theoretical prize (`B -> ∞`) | **3.0374 m/s** |
+| worst case at moderate `B` (`B/R ≈ 2.2`) | **−39.4 m/s** (bi-elliptic *worse*) |
+| break-even `B_crit` | 815.820250 |
+| break-even apoapsis radius | 5.4482e+06 km (**14.17× lunar distance**) |
+| Hohmann transfer time | 0.520859 d |
+| time merely to break even | **524.09 d** |
+| time penalty factor | **1006.20×** |
+
+At break-even the saving is zero by definition; the full 3 m/s requires infinite
+time. This is why the deliverable must be an engineering trade rather than a
+minimization — but the recommendation itself is **M6, not M2**.
+
+## M2.12 Scope guard
+
+M2 did **not** implement, and must not be read as implementing:
+
+- the final crossover radius-ratio portfolio plot (M4)
+- the final mission/engineering recommendation (M6)
+- sensitivity or large parameter sweeps (M3)
+- perturbations of any kind (no J2, no third body, no drag)
+- finite-burn losses
+- plane-change coupling
+- radiation or environment models
+- a mission-specific optimizer or operational decision tool
+
+M2 is equation and solver verification only. The M1 scope and limitations in
+Section 12 continue to apply in full, unchanged.
+
+## M2.13 Changes to M1 material
+
+**None.** No M1 headline value was altered; every M1 number in Sections 1–13 above
+was independently reproduced by the production code as a pre-flight check and again
+as regression tests. The only M1-era file modified is `tests/test_placeholder.py`,
+renamed and updated as described in M2.9, because its explicit purpose was to
+assert that the M2 API did not yet exist.
+
+One clarification, not a correction: M1 Section 6.1 described the shape scan; M2
+adds that the scan needs a rounding-noise floor to remain meaningful past
+`B/R ~ 1e10`, and that `R = 9` is the special case where the tail decays
+quadratically. The structural conclusion is unchanged.
