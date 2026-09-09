@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "bielliptic-crossover"
-version = "0.3.0"
+version = "1.0.0"
 description = "Crossover analysis of bi-elliptic versus Hohmann impulsive orbit transfers"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Sanjana" }]
 keywords = ["astrodynamics", "orbital-mechanics", "hohmann", "bi-elliptic", "delta-v"]
 classifiers = [
@@ -19,7 +20,7 @@ classifiers = [
 dependencies = ["numpy>=1.24", "scipy>=1.10"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0"]
+dev = ["pytest>=7.0", "ruff>=0.5", "pyflakes>=3.0"]
 figures = ["matplotlib>=3.7"]
 
 [tool.setuptools]
@@ -27,6 +28,21 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+# Pinned so `ruff check` gives the same result for any reviewer, independent of
+# the ruff version's evolving defaults.
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+# E402: the analysis scripts must extend sys.path before importing the package,
+# so module-level imports legitimately follow executable statements there.
+ignore = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bielliptic_crossover"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"

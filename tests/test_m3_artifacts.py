@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import importlib.util
+import itertools
 import json
 import pathlib
 
@@ -101,7 +102,7 @@ def test_break_even_curve_is_monotone_and_inside_region_B() -> None:
     with (RESULTS / "m3_break_even_curve.csv").open(encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
     ratios = [float(row["B_crit_over_R"]) for row in rows]
-    assert all(later < earlier for earlier, later in zip(ratios, ratios[1:]))
+    assert all(later < earlier for earlier, later in itertools.pairwise(ratios))
     assert ratios[0] > 1e4
     assert ratios[-1] == pytest.approx(1.0, abs=1e-5)
 

@@ -10,8 +10,8 @@ from bielliptic_crossover.constants import MU_EARTH, R1_REFERENCE
 from bielliptic_crossover.dimensional import hohmann_burns_direct, hohmann_total_dv_direct
 from bielliptic_crossover.hohmann import (
     hohmann_burns_normalized,
-    hohmann_total_normalized,
     hohmann_total_dv,
+    hohmann_total_normalized,
 )
 
 R_GRID = [1.0001, 1.5, 2.0, 5.0, 10.0, 11.9, 12.0, 15.0, 15.6, 16.0, 20.0, 50.0, 200.0, 1e4]

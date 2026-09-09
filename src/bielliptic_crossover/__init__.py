@@ -1,6 +1,6 @@
 """Bi-elliptic vs. Hohmann transfer crossover analysis.
 
-Milestone 3: the M2 transfer equations and solvers, plus the trade-study layer in
+Release 1.0: the transfer equations and solvers (M2) plus the trade-study layer in
 :mod:`bielliptic_crossover.trade` (crossover map, break-even locus, delta-v/time
 trade, scoped recommendation). The analytical development and the verification
 plan they implement are in ``DESIGN.md``.
@@ -28,7 +28,9 @@ the transfer equations and cross-checked against exact polynomial forms.
 The trade layer is imported explicitly as ``bielliptic_crossover.trade`` so that
 this module's M2 surface stays exactly as verified.
 
-Not yet implemented (Milestone 4 and later): final portfolio packaging and polish.
+Scope: idealized coplanar two-body impulsive transfers. No perturbations, finite
+burns, plane changes or mission optimization -- see ``DESIGN.md`` for the full
+limitations list.
 """
 
 from __future__ import annotations
@@ -87,7 +89,7 @@ from .timing import (
     time_scale,
 )
 
-__version__ = "0.3.0"
+__version__ = "1.0.0"
 
 __all__ = [
     "__version__",

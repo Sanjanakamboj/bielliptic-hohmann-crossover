@@ -22,7 +22,7 @@ def test_package_imports() -> None:
 
 
 def test_version_string() -> None:
-    assert bielliptic_crossover.__version__ == "0.3.0"
+    assert bielliptic_crossover.__version__ == "1.0.0"
 
 
 @pytest.mark.parametrize(
@@ -45,7 +45,11 @@ def test_version_string() -> None:
         "scripts/m3_trade_analysis.py",
         "scripts/m3_figures.py",
         "src/bielliptic_crossover/trade.py",
+        "LICENSE",
+        ".github/workflows/tests.yml",
+        "scripts/m4_final_summary.py",
         "results/m2_verification_report.txt",
+        "results/m4_final_summary.md",
         "results/m3_summary.json",
         "figures/m3_crossover_map.png",
         "figures/m3_dv_time_trade.png",

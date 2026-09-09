@@ -30,15 +30,13 @@ import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.patches import Patch  # noqa: E402
 import numpy as np  # noqa: E402
+from matplotlib.patches import Patch  # noqa: E402
 
 from bielliptic_crossover import (  # noqa: E402
     R1_REFERENCE,
     V1_REFERENCE,
     bielliptic_infinite_limit_normalized,
-    bielliptic_total_normalized,
-    break_even_B,
     hohmann_total_normalized,
     threshold_R1,
     threshold_R2,
@@ -222,10 +220,10 @@ def _trade_curve(R: float, n: int = 900) -> tuple[np.ndarray, np.ndarray]:
 
 def figure_dv_time_trade(output_path: pathlib.Path) -> None:
     cases = (12.0, 16.0)
-    fig, axes = plt.subplots(1, 2, figsize=(13.4, 6.6), layout="constrained")
+    fig, axes = plt.subplots(1, 2, figsize=(12.2, 6.9), layout="constrained")
     y_limits = {12.0: (-60.0, 12.0), 16.0: (-30.0, 165.0)}
 
-    for ax, R in zip(axes, cases):
+    for ax, R in zip(axes, cases, strict=True):
         ax.set_ylim(*y_limits[R])
         times, savings = _trade_curve(R)
         infimum = minimum_endpoint_transfer(R)
@@ -247,7 +245,7 @@ def figure_dv_time_trade(output_path: pathlib.Path) -> None:
             if ratio in (1.25, 2.0, 10.0, 100.0):
                 ax.annotate(f"$B/R$={ratio:g}",
                             xy=(point.t_bielliptic_days, point.dv_saving_m_s),
-                            xytext=(6, -13), textcoords="offset points", fontsize=8.5)
+                            xytext=(7, -15), textcoords="offset points", fontsize=11)
 
         break_even = break_even_trade(R)
         if break_even is not None:
@@ -264,39 +262,40 @@ def figure_dv_time_trade(output_path: pathlib.Path) -> None:
         )
         ax.text(times[-1] * 0.1, infimum.saving_m_s * 1.02 + 1.0,
                 "$B\\to\\infty$: approached only as\ntransfer time $\\to\\infty$",
-                fontsize=8.5, color=COLOUR_INFIMUM, va="bottom")
+                fontsize=10.5, color=COLOUR_INFIMUM, va="bottom")
 
         ax.set_xscale("log")
-        ax.set_xlabel("bi-elliptic transfer time  [days]   (logarithmic)")
+        ax.set_xlabel("bi-elliptic transfer time  [days]   (logarithmic)", fontsize=12)
         ax.grid(True, which="major", alpha=0.28)
         ax.grid(True, which="minor", alpha=0.10)
-        ax.legend(loc="lower right", fontsize=8.5, framealpha=0.95)
 
         # Model-validity marker: B at which the apoapsis RADIUS equals the lunar
         # distance. Beyond it an Earth-only two-body model is not appropriate.
         b_lunar = LUNAR_DISTANCE_KM / R1_REFERENCE
         lunar_point = practical_trade_metrics(R, b_lunar)
-        ax.axvline(lunar_point.t_bielliptic_days, color="0.4", lw=1.4, ls="-.", zorder=2)
+        # Carried in the legend rather than as a floating box, so it cannot
+        # collide with the curve or the legend at reduced embed sizes.
+        ax.axvline(
+            lunar_point.t_bielliptic_days, color="0.4", lw=1.5, ls="-.", zorder=2,
+            label="$r_b$ = lunar distance → two-body model\nINVALID in the shaded region",
+        )
         ax.axvspan(lunar_point.t_bielliptic_days, times[-1] * 3.0,
                    color="#f3d9d9", alpha=0.35, zorder=0)
-        ax.text(
-            lunar_point.t_bielliptic_days * 1.35, ax.get_ylim()[0],
-            "$r_b$ = lunar distance\n→ Earth-only two-body\nmodel INVALID to the right",
-            fontsize=8.5, color="0.2", va="bottom",
-            bbox={"boxstyle": "round,pad=0.35", "fc": "white", "ec": "0.55", "alpha": 0.95},
-        )
+
+        ax.legend(loc="lower right", fontsize=9.5, framealpha=0.96)
 
         regime = "Region B" if break_even is not None else "Region C"
-        ax.set_title(f"$R$ = {R:g}  ({regime})", fontsize=12)
+        ax.set_title(f"$R$ = {R:g}  ({regime})", fontsize=13.5)
 
-    axes[0].set_ylabel("$\\Delta v$ saving vs. Hohmann  [m/s]\n(positive = bi-elliptic cheaper)")
+    axes[0].set_ylabel("$\\Delta v$ saving vs. Hohmann  [m/s]\n(positive = bi-elliptic cheaper)",
+                       fontsize=12)
 
     fig.suptitle(
         "Delta-v vs. transfer-time trade   (Earth reference: $r_1$ = "
         f"{R1_REFERENCE:.4f} km, $v_1$ = {V1_REFERENCE:.4f} km/s)\n"
         "circles are representative FINITE apoapsis designs, not optima — "
         "no finite optimum in $B$ exists",
-        fontsize=12,
+        fontsize=13,
     )
     fig.savefig(REPO_ROOT / output_path, dpi=165)
     plt.close(fig)

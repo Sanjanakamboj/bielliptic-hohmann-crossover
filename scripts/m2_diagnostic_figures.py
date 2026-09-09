@@ -74,7 +74,7 @@ def figure_1(output_path: pathlib.Path) -> None:
 
     fig, ax = plt.subplots(figsize=(10.6, 7.4))
     extremes = []
-    for (R, region), colour in zip(cases, colours):
+    for (R, region), colour in zip(cases, colours, strict=True):
         dv_hohmann = hohmann_total_normalized(R)
         excess = np.array(
             [bielliptic_total_normalized(R, R * q) - dv_hohmann for q in ratios]

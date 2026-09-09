@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import math
 
 import pytest
@@ -288,7 +289,7 @@ def test_curve_is_continuous_in_B(R: float) -> None:
             bielliptic_total_normalized(R, R * (1.0 + 1e-9) * 10.0 ** (12.0 * i / n_samples))
             for i in range(n_samples + 1)
         ]
-        return max(abs(b - a) for a, b in zip(values, values[1:]))
+        return max(abs(b - a) for a, b in itertools.pairwise(values))
 
     coarse = largest_jump(500)
     fine = largest_jump(1000)
@@ -306,7 +307,7 @@ def test_hohmann_curve_is_continuous_in_R() -> None:
             hohmann_total_normalized(1.0 + 10.0 ** (6.0 * i / n_samples - 3.0))
             for i in range(n_samples + 1)
         ]
-        return max(abs(b - a) for a, b in zip(values, values[1:]))
+        return max(abs(b - a) for a, b in itertools.pairwise(values))
 
     coarse = largest_jump(500)
     fine = largest_jump(1000)

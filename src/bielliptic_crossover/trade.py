@@ -24,7 +24,8 @@ time and is not a realizable transfer.
 from __future__ import annotations
 
 import math
-from typing import NamedTuple, Sequence
+from collections.abc import Sequence
+from typing import NamedTuple
 
 import numpy as np
 

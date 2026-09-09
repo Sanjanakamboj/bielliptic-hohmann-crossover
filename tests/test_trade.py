@@ -546,7 +546,7 @@ def test_sweep_radius_ratios_matches_pointwise_evaluation() -> None:
     grid = authoritative_R_grid(n_global=60, n_window=11)
     swept = sweep_radius_ratios(grid)
     assert len(swept) == grid.size
-    for item, R in zip(swept, grid):
+    for item, R in zip(swept, grid, strict=True):
         assert item.R == float(R)
         assert item.dv_best_bar == minimum_endpoint_transfer(float(R)).dv_best_bar
 

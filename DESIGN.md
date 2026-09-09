@@ -1,3 +1,25 @@
+# DESIGN — status
+
+**Technical project complete (v1.0.0).**
+
+| Milestone | Role | Authority |
+|---|---|---|
+| M1 | Analytical derivation, hand calculations, verification plan | derivation history |
+| M2 | Production transfer equations, solvers, verification suite | verification history |
+| **M3** | Crossover map, break-even locus, Δv/time trade, recommendation | **authoritative for all final results** |
+| M4 | Audit, packaging, reproducibility, CI, release | audit record only — no physics changes |
+
+**M3 is authoritative** for the crossover results, the break-even locus and the
+engineering recommendation. M1 and M2 are preserved unchanged as derivation and
+verification history; where an earlier section's prose disagrees with M3 output,
+M3 wins. M4 changed **no physics** — it corrected documentation transcription
+errors, added packaging, and recorded the audit (see the M4 section at the end).
+
+The single source of truth for headline numbers is
+`results/m4_final_summary.md`, generated from production code.
+
+---
+
 # DESIGN — Milestone 1
 
 **Bi-elliptic / Hohmann crossover: problem definition, analytical derivation, hand
@@ -1316,11 +1338,15 @@ model rather than trajectory designs. This project makes no claim otherwise.
 **`R = 12` (Region B).** Entire mathematical prize `+3.04 m/s`, and only at
 `B -> infinity`:
 
+*(Values below corrected during the M4 audit — see M4.2. The production code,
+CSVs and figures were always correct; three cells in this hand-typed table were
+not.)*
+
 | strategy | `B` | saving | `t_B/t_H` | `r_b` / lunar | model |
 |---|---|---|---|---|---|
-| `B/R=1.25` | 15.0 | −22.30 m/s | 4.36 | 0.26 | caution |
-| `B/R=2` | 24.0 | **−39.02 m/s** | 7.28 | 0.42 | caution |
-| `B/R=10` | 120.0 | −15.02 m/s | 60.0 | 2.08 | invalid |
+| `B/R=1.25` | 15.00 | −22.30 m/s | 4.36 | 0.26 | caution |
+| `B/R=2` | 24.00 | **−39.02 m/s** | 7.28 | 0.42 | caution |
+| `B/R=10` | 120.00 | −14.99 m/s | 60.75 | 2.08 | invalid |
 | `B_crit` | 815.82 | **0.00 m/s** | **1006.20** | 14.17 | invalid |
 | `1.1 B_crit` | 897.40 | +0.27 m/s | 1159.59 | 15.59 | invalid |
 | `2 B_crit` | 1631.64 | +1.50 m/s | **2829.07** | 28.35 | invalid |
@@ -1332,12 +1358,14 @@ prize, for a **2829×** time penalty at 28 lunar distances.
 readily — but still trades time, and the useful designs are already past the
 lunar distance:
 
+*(Values below corrected during the M4 audit — see M4.2.)*
+
 | strategy | `B` | saving | `t_B/t_H` | `r_b` / lunar | model |
 |---|---|---|---|---|---|
-| `B/R=1.25` | 20.0 | +5.87 m/s | 3.86 | 0.35 | caution |
-| `B/R=2` | 32.0 | +31.79 m/s | 6.86 | 0.56 | caution |
-| `B/R=5` | 80.0 | +85.39 m/s | 23.8 | 1.39 | invalid |
-| `B/R=100` | 1600.0 | +139.85 m/s | 2005 | 27.8 | invalid |
+| `B/R=1.25` | 20.00 | +5.97 m/s | 4.45 | 0.35 | caution |
+| `B/R=2` | 32.00 | +31.87 m/s | 7.45 | 0.56 | caution |
+| `B/R=5` | 80.00 | +85.39 m/s | 23.82 | 1.39 | invalid |
+| `B/R=100` | 1600.00 | +139.33 m/s | 1840.74 | 27.80 | invalid |
 | `B -> ∞` | — | +142.71 m/s (infimum) | ∞ | ∞ | not a transfer |
 
 ## M3.9 Engineering recommendation
@@ -1365,10 +1393,19 @@ dominance**, **finite-transfer practical saving**, **time and model-validity cos
   Hohmann remains firmly preferred** within this idealized coplanar impulsive
   two-body model.
 
-Three statements this project explicitly does **not** make: that bi-elliptic is
-always better above 11.94; that 15.58 is where bi-elliptic first wins; that
-`B -> infinity` is optimal without the infimum qualification. Tests assert the
-generated recommendation text avoids the last two phrasings.
+Three claims this project explicitly does **not** make:
+
+1. that the bi-elliptic transfer simply becomes the better choice everywhere
+   above the lower threshold — in Region B it is worse for every apoapsis below
+   `B_crit(R)`;
+2. that the *upper* threshold is where the bi-elliptic family first becomes
+   competitive — that is the *lower* threshold's role; the upper one is where
+   **every** admissible apoapsis wins;
+3. that `B -> infinity` is an optimum — it is a mathematical infimum requiring
+   unbounded transfer time and is never a realizable transfer.
+
+`tests/test_m4_docs.py` asserts that neither this document nor the README ever
+states any of them, and that the generated recommendation text avoids them too.
 
 ## M3.10 Numerical verification and boundary findings
 
@@ -1471,3 +1508,203 @@ file's scaffold list extended with the new M3 paths. Its obsolete
 `test_no_production_modules_yet` check -- written at M1 when the package was
 empty -- was removed, since the M2 modules it forbade have existed since the
 previous milestone and the surrounding tests already assert the current layout.
+
+---
+---
+
+# DESIGN — Milestone 4
+
+**Final audit, portfolio polish, reproducibility, CI and release.**
+
+Status: **complete — released as v1.0.0.** M4 changed **no physics**. It audited
+the repository, corrected documentation transcription errors, fixed one packaging
+bug it introduced, and added licensing, CI and reproducibility guarantees.
+
+## M4.1 What was audited
+
+| Area | Method | Result |
+|---|---|---|
+| Accepted results | independent scratch mpmath vis-viva implementation importing no project physics | all reproduced, worst relative residual `3.21e-13` |
+| Physics recheck A–O | separate scratch implementation, 15 categories | all passed, worst `2.82e-14` (excluding the finite-`B` asymptotic check at `4.06e-7`) |
+| Static analysis | `pyflakes`, `ruff` | clean after fixes; lint config now pinned |
+| Documentation numbers | every prose table cell compared against production output | **5 erroneous cells found and corrected** (M4.2) |
+| Figures | inspected at full resolution and at ~880 px README embed width | one genuine readability issue fixed (M4.3) |
+| Dependencies | imports cross-checked against `pyproject.toml` | correctly partitioned |
+| Fresh environment | new venv, editable install, full regeneration | **one packaging bug found and fixed** (M4.4) |
+| Artifacts | absolute paths, determinism, ordering, duplication | clean; all numerical artifacts byte-identical across environments |
+| Claims/wording | forbidden-phrase scan, now enforced by tests | clean |
+
+## M4.2 Genuine error found: documentation drift
+
+**The only substantive defect the audit found.**
+
+The prose tables in M3.8 were hand-typed rather than generated. Comparing every
+cell against production output revealed **five wrong cells**:
+
+| location | documented | actual |
+|---|---|---|
+| `R = 12`, `B/R = 10` | −15.02 m/s, `t_B/t_H` = 60.0 | **−14.99 m/s, 60.75** |
+| `R = 16`, `B/R = 1.25` | +5.87 m/s, 3.86 | **+5.97 m/s, 4.45** |
+| `R = 16`, `B/R = 2` | +31.79 m/s, 6.86 | **+31.87 m/s, 7.45** |
+| `R = 16`, `B/R = 5` | 23.8 | **23.82** |
+| `R = 16`, `B/R = 100` | +139.85 m/s, 2005 | **+139.33 m/s, 1840.74** |
+
+**Cause.** Transcription, not computation. The production code, the CSV/JSON
+artifacts and all figures were correct throughout — verified independently. Only
+the hand-typed markdown was wrong, and the `R = 16` row values appear to have come
+from an intermediate exploratory run rather than the final production output.
+
+**Impact.** Documentation only. No threshold, no `B_crit`, no accepted headline
+value and no figure changed. The qualitative conclusions are unaffected: `R = 16`
+still shows a benefit appearing far more readily than at `R = 12`, and the time
+penalty at `B/R = 2` is 7.45× rather than 6.86× — slightly *worse* for the
+bi-elliptic case than previously written, so no conclusion was overstated in the
+bi-elliptic's favour by the error.
+
+**Fix.**
+1. `scripts/m4_final_summary.py` now **generates** the headline tables from
+   production code into `results/m4_final_summary.md`, which the README embeds
+   verbatim.
+2. The M3.8 tables were corrected in place and annotated.
+3. `tests/test_m4_docs.py` asserts every documented strategy row still matches
+   production, that the README embeds the generated table verbatim, and that the
+   documented thresholds equal `repr(threshold_R1())` / `repr(threshold_R2())`.
+
+The lesson is recorded rather than buried: **numbers that appear in prose should
+be generated, not typed.**
+
+## M4.3 Figure audit
+
+Every figure was inspected at full resolution and at ~880 px, the width GitHub
+renders README images at.
+
+Final hierarchy:
+
+| Tier | Figure | Role |
+|---|---|---|
+| **Primary 1** | `figures/m3_crossover_map.png` | the project in one glance: Δv curves with inset zoom on the crossing, best-possible saving, `B_crit/R` locus, over shaded Regions A/B/C |
+| **Primary 2** | `figures/m3_dv_time_trade.png` | the practical story: Δv saving vs. transfer time at `R = 12` and `R = 16` |
+| Supporting 3 | `figures/m3_break_even_time_penalty.png` | Region-B divergence with fitted power laws |
+| Supporting 4 | `figures/m2_fig1_excess_vs_B.png` | structural verification: no interior minimum |
+| Diagnostic 5 | `figures/m2_fig2_time_trade_R12.png` | M2-era Δv/time diagnostic, superseded by Primary 2 |
+
+**One figure was changed**, `m3_dv_time_trade.png`: at embed width its smallest
+annotations were only marginally legible. Font sizes were raised (8.5 → 10–11 pt)
+and the canvas slightly narrowed. Enlarging the type then caused the
+lunar-distance note to collide with the legend, so that note was moved *into* the
+legend, where it cannot collide at any scale. **The underlying numerical arrays
+are unchanged** — a SHA-256 digest of the plotted time/saving arrays is identical
+before and after. No other figure was regenerated.
+
+## M4.4 Packaging bug found and fixed
+
+Adding `license-files = ["LICENSE"]` to `pyproject.toml` switched setuptools into
+PEP 639 mode, under which `project.license` must be an SPDX **string**, not the
+legacy `{ text = "MIT" }` table. The editable install then failed outright:
+
+```
+configuration error: `project.license` must be string
+```
+
+Caught immediately by the fresh-environment check, which is precisely its purpose.
+Fixed by moving to `license = "MIT"` and requiring `setuptools>=77`. The pre-M4
+form was verified to still install (deprecated but accepted), so **this bug was
+introduced during M4 and fixed within it** — it never affected M1–M3.
+
+## M4.5 Hygiene fixes
+
+All non-numerical, all proven to cause zero drift (result artifacts re-hashed
+before and after):
+
+- removed two genuinely unused imports in `scripts/m3_figures.py`;
+- `typing.Sequence` → `collections.abc.Sequence` in `trade.py` (annotation only);
+- `zip(..., strict=True)` on equal-length iterations, and `itertools.pairwise`
+  for the successive-pair idioms where `strict=True` would have been *wrong*;
+- `chmod +x` on the four runnable scripts, which carried shebangs but were not
+  executable;
+- pinned `[tool.ruff]` configuration so lint results are reproducible rather than
+  dependent on the reviewer's ruff version.
+
+Deliberately **not** changed: `__all__` ordering (grouped by module, which is more
+readable than alphabetical for this package) and the multi-line message strings
+ruff flags as `ISC004` (they are intentional, not missing commas).
+
+**Every M1/M2 numerical source file — `constants.py`, `_stable.py`, `hohmann.py`,
+`bielliptic.py`, `timing.py`, `dimensional.py`, `crossover.py` — is byte-identical
+to the M2 commit `410681d`.** `trade.py` changed only by the import move above.
+
+## M4.6 Reproducibility
+
+A fresh virtual environment was created, the package installed with
+`pip install -e ".[dev,figures]"`, the suite run, and every artifact regenerated.
+
+Versions used: Python 3.14.5, numpy 2.5.3, scipy 1.18.1, matplotlib 3.11.1,
+pytest 9.1.1 (the committed figures were rendered with matplotlib 3.10.9).
+
+| Output | Result |
+|---|---|
+| Test suite | 1076 passed under `pytest -W error` |
+| `results/*.csv`, `*.json`, `*.md`, `*.txt` | **8 of 8 byte-identical** to the committed files |
+| `figures/*.png` | bytes differ under matplotlib 3.11.1 vs 3.10.9 |
+
+The distinction matters and is not glossed over: **numerical reproducibility is
+exact and enforced in CI**; **PNG byte-reproducibility is not claimed across
+matplotlib versions**, only within one. The arrays behind the figures are
+deterministic; the rasterisation is not portable. Committed figures were left as
+rendered by matplotlib 3.10.9 rather than regenerated to chase byte equality.
+
+CI enforces the numerical half directly: after regenerating the artifacts it runs
+`git diff --exit-code -- results/`, so any drift fails the build.
+
+## M4.7 Final authoritative hierarchy
+
+1. **`results/m4_final_summary.md`** — generated headline table, single source of
+   truth for numbers quoted in prose.
+2. **M3 artifacts** (`results/m3_*.csv`, `results/m3_summary.json`) — the full
+   trade study.
+3. **M2 report** (`results/m2_verification_report.txt`) — equation verification.
+4. **DESIGN.md M3** — authoritative narrative for final results.
+5. **DESIGN.md M1/M2** — derivation and verification history, preserved unchanged.
+
+## M4.8 Release state
+
+- Version **1.0.0**, consistent between `pyproject.toml` and `__init__.py`
+  (asserted by a test).
+- **MIT LICENSE** added, author `Sanjana` taken from the git configuration.
+- **CI** (`.github/workflows/tests.yml`) on push and pull request, Python 3.11 and
+  3.12, running `pytest -W error` and the artifact-determinism check.
+- Runtime dependencies `numpy`, `scipy`; `matplotlib` under the `figures` extra;
+  `pytest`, `ruff`, `pyflakes` under `dev`.
+- **1076 tests** passing under `pytest -W error` with no warnings.
+
+## M4.9 Remaining weaknesses
+
+Stated plainly rather than hidden:
+
+1. **The model is idealized and that is the dominant limitation.** Every
+   conclusion holds only for coplanar, two-body, impulsive transfers. The
+   regime where the bi-elliptic transfer wins materially is exactly the regime
+   where an Earth-only two-body model stops being appropriate — which is a
+   finding, but it also means the practical recommendation rests on a model
+   invalid at the apoapses in question.
+2. **No finite-burn, plane-change or perturbation modelling.** Real
+   high-apoapsis transfers would be dominated by third-body effects and finite-burn
+   losses, both of which plausibly shift the crossover.
+3. **Threshold behaviour near `R1*`/`R2*` is resolution-limited in double
+   precision** (M3.10). The bands are ~2e-14 and ~3.3e-6 wide respectively and are
+   documented and tested, but a reviewer wanting exact behaviour at the thresholds
+   would need extended precision.
+4. **Figure rendering is not byte-portable** across matplotlib versions, so CI
+   verifies numerical artifacts only, not images.
+5. **Single-author verification.** The independent checks are genuinely separate
+   implementations, but written by the same author against the same understanding;
+   a shared conceptual error would not be caught.
+6. **No experimental or mission validation.** Comparison is against classical
+   textbook values only, and only after independent derivation.
+
+## M4.10 Scope guard
+
+M4 added **no orbital-transfer physics**. No J2, no third-body propagation, no
+Lambert targeting, no finite burns, no plane changes, no low thrust, no radiation
+model, no mission optimizer. The M1 Section 12 limitations continue to apply in
+full and unchanged.
