@@ -1696,7 +1696,7 @@ pytest 9.1.1 (the committed figures were rendered with matplotlib 3.10.9).
 
 | Output | Result |
 |---|---|
-| Test suite | 1079 passed under `pytest -W error` |
+| Test suite | 1080 passed under `pytest -W error` |
 | `results/*.csv`, `*.json`, `*.md`, `*.txt` | **8 of 8 byte-identical** to the committed files (same platform) |
 | `figures/*.png` | bytes differ under matplotlib 3.11.1 vs 3.10.9 |
 
@@ -1741,7 +1741,7 @@ Python versions, so stale or nondeterministic artifacts fail the build.
   3.12, running `pytest -W error` and the artifact-determinism check.
 - Runtime dependencies `numpy`, `scipy`; `matplotlib` under the `figures` extra;
   `pytest`, `ruff`, `pyflakes` under `dev`.
-- **1079 tests** passing under `pytest -W error` with no warnings.
+- **1080 tests** passing under `pytest -W error` with no warnings.
 
 ## M4.9 Remaining weaknesses
 
