@@ -134,8 +134,11 @@ are clean.
 - **Cancellation-resistant formulation.** Burn 3 uses `sqrt(1+x)−1 = x/(√(1+x)+1)`;
   the naive form returns a *negative* burn magnitude at `B = R` for 58 of 398
   sampled `R`.
-- **Deterministic artifacts.** All CSV/JSON regenerate byte-identically, verified
-  in CI.
+- **Deterministic artifacts.** Every generator is byte-identical when run twice in
+  the same environment, and committed artifacts are checked cell by cell against
+  regenerated ones at `rtol=1e-12` — both enforced in CI. Bit-equality *across*
+  platforms is deliberately not claimed: `math.exp`/`log` are not bit-identical
+  across C libraries.
 
 ## Limitations
 

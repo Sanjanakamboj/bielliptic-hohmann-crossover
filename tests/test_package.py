@@ -48,6 +48,7 @@ def test_version_string() -> None:
         "LICENSE",
         ".github/workflows/tests.yml",
         "scripts/m4_final_summary.py",
+        "scripts/m4_verify_artifacts.py",
         "results/m2_verification_report.txt",
         "results/m4_final_summary.md",
         "results/m3_summary.json",

@@ -29,9 +29,5 @@ jobs:
       - name: Run test suite
         run: pytest -W error
 
-      - name: Verify result artifacts regenerate identically
-        run: |
-          python scripts/m2_verification_report.py
-          python scripts/m3_trade_analysis.py
-          python scripts/m4_final_summary.py
-          git diff --exit-code -- results/
+      - name: Verify result artifacts are deterministic and current
+        run: python scripts/m4_verify_artifacts.py

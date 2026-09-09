@@ -1697,17 +1697,30 @@ pytest 9.1.1 (the committed figures were rendered with matplotlib 3.10.9).
 | Output | Result |
 |---|---|
 | Test suite | 1079 passed under `pytest -W error` |
-| `results/*.csv`, `*.json`, `*.md`, `*.txt` | **8 of 8 byte-identical** to the committed files |
+| `results/*.csv`, `*.json`, `*.md`, `*.txt` | **8 of 8 byte-identical** to the committed files (same platform) |
 | `figures/*.png` | bytes differ under matplotlib 3.11.1 vs 3.10.9 |
 
-The distinction matters and is not glossed over: **numerical reproducibility is
-exact and enforced in CI**; **PNG byte-reproducibility is not claimed across
-matplotlib versions**, only within one. The arrays behind the figures are
-deterministic; the rasterisation is not portable. Committed figures were left as
-rendered by matplotlib 3.10.9 rather than regenerated to chase byte equality.
+**Three levels of reproducibility, stated separately because they are not the
+same claim** — an initial over-claim here was caught by CI and corrected:
 
-CI enforces the numerical half directly: after regenerating the artifacts it runs
-`git diff --exit-code -- results/`, so any drift fails the build.
+1. **Determinism within an environment: exact.** Running every generator twice
+   produces byte-identical output. This is the property that makes the artifacts
+   a pure function of the code, and CI enforces it.
+2. **Numerical reproducibility across platforms: exact to `1e-12` relative, not
+   to the bit.** The generators use `math.exp`/`math.log` (in the log-space
+   break-even bisection) and `numpy.logspace`; those are libm- and BLAS-backed
+   and are *not* bit-identical across C libraries. Full-precision `repr` output
+   can therefore differ by one unit in the last place between macOS and Linux.
+   CI compares committed against regenerated values cell by cell at `rtol=1e-12`,
+   which is far tighter than any physical significance while not pretending to a
+   bit-equality that IEEE-754 does not guarantee for transcendental functions.
+3. **PNG byte-reproducibility across matplotlib versions: not claimed at all.**
+   The arrays behind the figures are deterministic; the rasterisation is not
+   portable. Committed figures were left as rendered by matplotlib 3.10.9 rather
+   than regenerated to chase byte equality.
+
+`scripts/m4_verify_artifacts.py` implements levels 1 and 2 and runs in CI on both
+Python versions, so stale or nondeterministic artifacts fail the build.
 
 ## M4.7 Final authoritative hierarchy
 
