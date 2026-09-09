@@ -12,14 +12,14 @@ byte-identical output.
 Threshold R1*  --  condition dv_H(R) = dv_B_inf(R), examined at B -> infinity
   asks: can ANY bi-elliptic transfer beat Hohmann?   (exists B)
   from transfer equations (brentq) : 11.9387654726458923
-  from cubic u^3-(1+2sqrt2)u^2+u+1=0  : 11.9387654726458692   (u = sqrt(R))
-  absolute difference              : 2.309e-14
+  from cubic u^3-(1+2sqrt2)u^2+u+1=0  : 11.9387654726458727   (u = sqrt(R))
+  absolute difference              : 1.954e-14
 
 Threshold R2*  --  condition d(dv_B)/dB = 0 at B = R+, examined at B -> R+
   asks: do ALL bi-elliptic transfers beat Hohmann?   (for all B)
   from slope condition (brentq)    : 15.5817187387631790
-  from cubic R^3-15R^2-9R-1=0      : 15.5817187387631879
-  absolute difference              : 8.882e-15
+  from cubic R^3-15R^2-9R-1=0      : 15.5817187387631790
+  absolute difference              : 0.000e+00
 
   separation R2* - R1*             : 3.6429532661172868
 

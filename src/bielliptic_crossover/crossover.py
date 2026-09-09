@@ -89,14 +89,25 @@ def threshold_R1_from_polynomial() -> float:
     With ``u = sqrt(R)``, squaring the reduced condition
     ``(R-1)/sqrt(R+1) = sqrt(R) + 1 - sqrt(2)`` yields this cubic (DESIGN.md
     Section 5.1). The physically relevant root is the unique real root with
-    ``u > 1``. Shares no code path with :func:`threshold_R1`.
+    ``u > 1`` (the other two are ``-0.383`` and ``0.756``), so ``[1, 10]``
+    brackets it: ``f(1) = -0.828 < 0`` and ``f(10) = 628 > 0``.
+
+    Solved by bisection on the polynomial itself rather than by a companion-matrix
+    eigenvalue routine. ``numpy.roots`` delegates to LAPACK, whose last bits vary
+    between BLAS builds, which made this value -- and therefore the generated
+    verification report -- differ between macOS and Linux (M4 audit). Bracketed
+    root-finding uses only IEEE-754 arithmetic on our own polynomial, so it is
+    reproducible across platforms, and it is also more accurate here.
+
+    Shares no code path with :func:`threshold_R1`.
     """
-    coefficients = [1.0, -(1.0 + 2.0 * math.sqrt(2.0)), 1.0, 1.0]
-    roots = np.roots(coefficients)
-    real_roots = [r.real for r in roots if abs(r.imag) < 1e-12 and r.real > 1.0]
-    if len(real_roots) != 1:
-        raise RuntimeError(f"expected exactly one root u > 1, got {real_roots!r}")
-    return float(real_roots[0] ** 2)
+    cubic_in_u = 1.0 + 2.0 * math.sqrt(2.0)
+
+    def polynomial(u: float) -> float:
+        return u**3 - cubic_in_u * u**2 + u + 1.0
+
+    u = brentq(polynomial, 1.0, 10.0, xtol=1e-15, rtol=8.9e-16, maxiter=200)
+    return float(u**2)
 
 
 @lru_cache(maxsize=1)
@@ -122,14 +133,23 @@ def threshold_R2_from_cubic() -> float:
     """Threshold ``R2*`` from the exact cubic ``R^3 - 15*R^2 - 9*R - 1 = 0``.
 
     Obtained by clearing radicals in the slope condition (DESIGN.md Section 5.2).
-    The cubic has exactly one positive real root. Shares no code path with
-    :func:`threshold_R2`.
+    The cubic has exactly one positive real root (the others are ``-0.434`` and
+    ``-0.148``), so ``[0, 100]`` brackets it: ``f(0) = -1 < 0`` and
+    ``f(100) = 849099 > 0``.
+
+    Solved by bisection on the polynomial rather than by ``numpy.roots``, for the
+    platform-reproducibility reason documented in
+    :func:`threshold_R1_from_polynomial`. Here it is also markedly more accurate:
+    the residual against a 40-digit reference falls from ``8.7e-15`` to
+    ``1.8e-16``.
+
+    Shares no code path with :func:`threshold_R2`.
     """
-    roots = np.roots([1.0, -15.0, -9.0, -1.0])
-    real_positive = [r.real for r in roots if abs(r.imag) < 1e-12 and r.real > 0.0]
-    if len(real_positive) != 1:
-        raise RuntimeError(f"expected exactly one positive root, got {real_positive!r}")
-    return float(real_positive[0])
+
+    def polynomial(R: float) -> float:
+        return R**3 - 15.0 * R**2 - 9.0 * R - 1.0
+
+    return float(brentq(polynomial, 0.0, 100.0, xtol=1e-15, rtol=8.9e-16, maxiter=200))
 
 
 class BreakEvenResult(NamedTuple):

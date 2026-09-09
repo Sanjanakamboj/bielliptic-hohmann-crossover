@@ -918,8 +918,12 @@ share no algebra.
 | | `R1*` | `R2*` |
 |---|---|---|
 | Path 1 (transfer equations) | `brentq` on `dv_bar_H(R) - dv_bar_B_inf(R)` → `11.9387654726458923` | `brentq` on `d(dv_bar_B)/dB` at `B=R` → `15.5817187387631790` |
-| Path 2 (exact polynomial) | `u³-(1+2√2)u²+u+1=0`, `u=√R` → `11.9387654726458692` | `R³-15R²-9R-1=0` → `15.5817187387631879` |
-| Difference between paths | `2.309e-14` | `8.882e-15` |
+| Path 2 (exact polynomial) | `u³-(1+2√2)u²+u+1=0`, `u=√R` → `11.9387654726458727` | `R³-15R²-9R-1=0` → `15.5817187387631790` |
+| Difference between paths | `1.954e-14` | `0.000e+00` |
+
+*(Path-2 values updated in M4: the polynomials are now solved by bracketed
+root-finding rather than by `numpy.roots`, which was not reproducible across
+BLAS builds. See M4.5b. The `R2*` paths now agree exactly.)*
 | M1 accepted value | `11.938765472645870716` | `15.581718738763179213` |
 
 Both agree with M1 to the limit of double precision. Residuals at the recomputed
@@ -1629,9 +1633,58 @@ Deliberately **not** changed: `__all__` ordering (grouped by module, which is mo
 readable than alphabetical for this package) and the multi-line message strings
 ruff flags as `ISC004` (they are intentional, not missing commas).
 
-**Every M1/M2 numerical source file — `constants.py`, `_stable.py`, `hohmann.py`,
-`bielliptic.py`, `timing.py`, `dimensional.py`, `crossover.py` — is byte-identical
-to the M2 commit `410681d`.** `trade.py` changed only by the import move above.
+**Every M1/M2 numerical source file except `crossover.py` — `constants.py`,
+`_stable.py`, `hohmann.py`, `bielliptic.py`, `timing.py`, `dimensional.py` — is
+byte-identical to the M2 commit `410681d`.** `trade.py` changed only by the import
+move above. `crossover.py` changed only in its two polynomial root-finders, for
+the CI-proven reproducibility defect documented in M4.5b; every transfer equation
+in it is untouched.
+
+## M4.5b Second genuine error: polynomial roots were not platform-reproducible
+
+**Found by CI, after the M4 commit was first pushed.** Both GitHub Actions jobs
+failed on `test_committed_report_matches_regeneration`: the committed M2
+verification report did not match the report regenerated on Linux.
+
+The cause was `numpy.roots`, used by `threshold_R1_from_polynomial` and
+`threshold_R2_from_cubic`. It solves for polynomial roots as the eigenvalues of a
+companion matrix, delegating to LAPACK — and LAPACK's last bits differ between
+BLAS builds. The polynomial threshold therefore came out as
+
+```
+macOS / Accelerate : R1* = 11.9387654726458692
+Linux / OpenBLAS   : R1* = 11.9387654726458745
+```
+
+Both are correct to ~1e-15, so **no physical conclusion was ever affected** —
+every threshold quoted throughout the project comes from the `brentq`
+transfer-equation path, which was always deterministic. But the *generated
+artifact* embedded the platform-dependent digits, which silently broke the
+byte-reproducibility claim.
+
+**Fix.** Both polynomials are now solved by bracketed root-finding on the
+polynomial itself, over brackets justified from the known root structure
+(`u ∈ [1, 10]`; `R ∈ [0, 100]`). This uses only IEEE-754 arithmetic on our own
+function, so it is reproducible on any platform, and it removed a dependency on
+the linear-algebra stack from a scalar root-find. The two solver paths remain
+genuinely independent — polynomial versus transfer equation — and no crossover
+constant is hardcoded: a bracket is a search interval, exactly as in
+`threshold_R1()`.
+
+It is also **more accurate**. Against a 40-digit reference:
+
+| | `numpy.roots` | bracketed | change |
+|---|---|---|---|
+| `R1*` residual | `1.53e-15` (macOS), `3.78e-15` (Linux) | `2.02e-15` | comparable, now deterministic |
+| `R2*` residual | `8.70e-15` | **`1.80e-16`** | **48× better** |
+
+As a result the two independent `R2*` paths now agree **exactly** (difference
+`0.000e+00`, previously `8.882e-15`). The M2.3 table above was updated
+accordingly; this is the only M1/M2 numerical source change in the entire
+project, and it is a reproducibility fix, not a physics change.
+
+**Lesson:** cross-platform CI earned its place immediately — this defect was
+invisible on the development machine and would have shipped without it.
 
 ## M4.6 Reproducibility
 
@@ -1643,7 +1696,7 @@ pytest 9.1.1 (the committed figures were rendered with matplotlib 3.10.9).
 
 | Output | Result |
 |---|---|
-| Test suite | 1076 passed under `pytest -W error` |
+| Test suite | 1079 passed under `pytest -W error` |
 | `results/*.csv`, `*.json`, `*.md`, `*.txt` | **8 of 8 byte-identical** to the committed files |
 | `figures/*.png` | bytes differ under matplotlib 3.11.1 vs 3.10.9 |
 
@@ -1675,7 +1728,7 @@ CI enforces the numerical half directly: after regenerating the artifacts it run
   3.12, running `pytest -W error` and the artifact-determinism check.
 - Runtime dependencies `numpy`, `scipy`; `matplotlib` under the `figures` extra;
   `pytest`, `ruff`, `pyflakes` under `dev`.
-- **1076 tests** passing under `pytest -W error` with no warnings.
+- **1079 tests** passing under `pytest -W error` with no warnings.
 
 ## M4.9 Remaining weaknesses
 

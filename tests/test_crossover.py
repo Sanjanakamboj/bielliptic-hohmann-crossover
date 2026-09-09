@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import itertools
 import math
+import pathlib
 
 import pytest
 
@@ -92,6 +93,35 @@ def test_R2_two_independent_paths_agree() -> None:
 def test_R2_satisfies_its_cubic() -> None:
     R = threshold_R2()
     assert R**3 - 15.0 * R**2 - 9.0 * R - 1.0 == pytest.approx(0.0, abs=1e-11)
+
+
+def test_polynomial_paths_avoid_platform_dependent_eigenvalue_solvers() -> None:
+    """Regression guard for the M4.5b defect.
+
+    ``numpy.roots`` finds polynomial roots as companion-matrix eigenvalues via
+    LAPACK, whose last bits differ between BLAS builds. That made the generated
+    verification report differ between macOS and Linux and broke CI. Both
+    polynomial thresholds must therefore be solved by bracketed root-finding on
+    the polynomial itself, using only IEEE-754 arithmetic.
+    """
+    source = (
+        pathlib.Path(__file__).resolve().parents[1]
+        / "src" / "bielliptic_crossover" / "crossover.py"
+    ).read_text(encoding="utf-8")
+    assert "np.roots" not in source
+    assert "numpy.roots" not in source.replace("``numpy.roots``", "")
+
+
+def test_R2_polynomial_paths_agree_to_the_last_bit() -> None:
+    """With the deterministic solver the two independent R2* paths coincide."""
+    assert threshold_R2() == threshold_R2_from_cubic()
+
+
+def test_polynomial_roots_are_accurate_against_their_own_polynomials() -> None:
+    u = math.sqrt(threshold_R1_from_polynomial())
+    assert abs(u**3 - (1.0 + 2.0 * math.sqrt(2.0)) * u**2 + u + 1.0) < 1e-14
+    R = threshold_R2_from_cubic()
+    assert abs(R**3 - 15.0 * R**2 - 9.0 * R - 1.0) < 1e-11
 
 
 def test_R2_satisfies_the_pre_squaring_form() -> None:
