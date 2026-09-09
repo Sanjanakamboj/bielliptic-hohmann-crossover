@@ -26,6 +26,9 @@ from bielliptic_crossover import (  # noqa: E402
     MU_EARTH,
     R1_REFERENCE,
     R_EARTH,
+    REGIME_ALL_BIELLIPTIC,
+    REGIME_HOHMANN_ONLY,
+    REGIME_LARGE_B_BIELLIPTIC,
     V1_REFERENCE,
     altitude_from_radius,
     bielliptic_burns_normalized,
@@ -50,6 +53,13 @@ from bielliptic_crossover import (  # noqa: E402
 )
 
 OUTPUT_PATH = pathlib.Path("results/m2_verification_report.txt")
+
+#: Compact region letters used in the transfer-time table.
+REGION_LETTER = {
+    REGIME_HOHMANN_ONLY: "A",
+    REGIME_LARGE_B_BIELLIPTIC: "B",
+    REGIME_ALL_BIELLIPTIC: "C",
+}
 DAY = 86400.0
 R_TABLE = [2.0, 5.0, 10.0, 12.0, 15.0, 16.0, 20.0, 50.0]
 R_BREAK_EVEN = [12.0, 13.0, 14.0, 15.0]
@@ -292,11 +302,15 @@ def build_report() -> str:
     # ---------------------------------------------------------------- times
     add(rule("9. TRANSFER TIMES"))
     add("")
+    add("The 'B evaluated' column is NOT a single quantity: what it means depends on")
+    add("the region, so the 'basis' column states which. See the legend below.")
+    add("")
     add(
-        f"{'R':>6} {'t_H [d]':>11} {'t_B(2R) [d]':>13} {'t_B(5R) [d]':>13} "
-        f"{'B_crit':>14} {'t_B(B_crit) [d]':>17} {'t_B/t_H':>11}"
+        f"{'R':>6} {'region':>7} {'t_H [d]':>11} {'t_B(2R) [d]':>13} "
+        f"{'t_B(5R) [d]':>13} {'B evaluated':>14} {'basis':>7} "
+        f"{'t_B [d]':>13} {'t_B/t_H':>11}"
     )
-    add("-" * 90)
+    add("-" * 104)
     for R in R_TABLE:
         t_h = hohmann_transfer_time(MU_EARTH, R1_REFERENCE, R * R1_REFERENCE) / DAY
         t_2r = (
@@ -312,11 +326,19 @@ def build_report() -> str:
             / DAY
         )
         result = break_even_B(R)
-        b_ref = result.B_crit if result.B_crit is not None else result.winning_B_infimum
+        region = REGION_LETTER[result.regime]
+        if result.B_crit is not None:
+            # Region B: the genuine finite break-even root.
+            b_ref, basis = result.B_crit, "B_crit"
+        else:
+            # Region A: nothing to evaluate. Region C: no finite break-even root
+            # exists, so what is evaluated is the OPEN B -> R+ boundary.
+            b_ref = result.winning_B_infimum
+            basis = "-" if b_ref is None else "B=R+"
         if b_ref is None:
             add(
-                f"{R:>6.1f} {t_h:>11.6f} {t_2r:>13.6f} {t_5r:>13.6f} "
-                f"{'none':>14} {'-':>17} {'-':>11}"
+                f"{R:>6.1f} {region:>7} {t_h:>11.6f} {t_2r:>13.6f} {t_5r:>13.6f} "
+                f"{'none':>14} {basis:>7} {'-':>13} {'-':>11}"
             )
         else:
             t_crit = (
@@ -326,9 +348,21 @@ def build_report() -> str:
                 / DAY
             )
             add(
-                f"{R:>6.1f} {t_h:>11.6f} {t_2r:>13.6f} {t_5r:>13.6f} "
-                f"{b_ref:>14.6f} {t_crit:>17.6f} {t_crit / t_h:>11.4f}"
+                f"{R:>6.1f} {region:>7} {t_h:>11.6f} {t_2r:>13.6f} {t_5r:>13.6f} "
+                f"{b_ref:>14.6f} {basis:>7} {t_crit:>13.6f} {t_crit / t_h:>11.4f}"
             )
+    add("")
+    add("basis legend:")
+    add("  -       Region A: Hohmann beats every admissible B. No break-even exists,")
+    add("          so there is nothing to evaluate.")
+    add("  B_crit  Region B: the FINITE break-even root, i.e. the unique B > R at")
+    add("          which dv_B(R,B) = dv_H(R). Bi-elliptic wins only for B > B_crit,")
+    add("          and the saving is exactly zero at the root itself.")
+    add("  B=R+    Region C: NO finite B_crit exists. Every admissible B > R already")
+    add("          beats Hohmann, so the winning set is the open interval (R, inf)")
+    add("          and its infimum B = R is not attained. The value shown is that")
+    add("          open boundary, evaluated only for the B = R timing degeneracy")
+    add("          below. It is NOT a break-even root.")
     add("")
     add("The B = R degeneracy (delta-v and time degenerate DIFFERENTLY):")
     add("  dv_B(R,R) = dv_H(R) exactly, but")

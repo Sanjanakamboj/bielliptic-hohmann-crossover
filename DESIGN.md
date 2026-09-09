@@ -530,6 +530,9 @@ confirm this rather than an interior stationary point.
 `B_crit(R)`, the smallest `B` that breaks even against Hohmann, is the practically
 meaningful quantity in Region B:
 
+*(Region-C row clarified in the M4 documentation pass — see M4.11. The values
+are unchanged; only the labelling of what they represent was ambiguous.)*
+
 | `R` | `B_crit` | `rb_crit / r2` | `rb_crit` altitude (Earth ref) |
 |---|---|---|---|
 | 11.94 | 40370.6 | 3381 | 2.70e8 km |
@@ -537,8 +540,13 @@ meaningful quantity in Region B:
 | 13 | 48.9048 | 3.76 | 3.20e5 km |
 | 14 | 26.1046 | 1.86 | 1.68e5 km |
 | 15 | 18.1903 | 1.21 | 1.15e5 km |
-| `R2*` = 15.5817 | 15.5817 | 1.000 | 9.77e4 km |
-| ≥ `R2*` | `= R` | 1.000 | — |
+| `R2*` = 15.5817 | 15.5817 (limit) | 1.000 | 9.77e4 km |
+| > `R2*` (Region C) | **none exists** | — | — |
+
+In Region C there is no finite `B_crit` to tabulate: every admissible `B > R`
+already beats Hohmann, so the winning set is the open interval `(R, ∞)` whose
+infimum `B = R` is not attained. `B_crit → R` is the *limit* approached from
+inside Region B, not a value taken beyond `R2*`.
 
 ### 6.3 Correction: the assumed "Region B" definition is empty
 
@@ -657,16 +665,26 @@ asymptote (BINF) is reached only in infinite time.
 
 ### 8.3 The trade, quantified (Earth reference, days)
 
-| `R` | `t_H` | `t_B(B=2R)` | `t_B(B=5R)` | `B_crit` | `t_B(B_crit)` | `t_B/t_H` at break-even |
-|---|---|---|---|---|---|---|
-| 2 | 0.0577 | 0.288 | 0.867 | never | — | — |
-| 5 | 0.163 | 1.051 | 3.299 | never | — | — |
-| 10 | 0.405 | 2.895 | 9.212 | never | — | — |
-| 12 | 0.521 | 3.789 | 12.08 | 815.8 | **524.1** | **1006×** |
-| 15 | 0.711 | 5.272 | 16.85 | 18.19 | 3.06 | 4.30× |
-| 16 | 0.779 | 5.802 | 18.55 | 16.0 | 2.79 | 3.58× |
-| 20 | 1.069 | 8.082 | 25.89 | 20.0 | 3.88 | 3.63× |
-| 50 | 4.047 | 31.69 | 101.9 | 50.0 | 15.16 | 3.75× |
+*(The `B evaluated` / `basis` columns replace a single ambiguous `B_crit` column
+in the M4 documentation pass — see M4.11. Every number is unchanged.)*
+
+| `R` | region | `t_H` | `t_B(B=2R)` | `t_B(B=5R)` | `B` evaluated | basis | `t_B` | `t_B/t_H` |
+|---|---|---|---|---|---|---|---|---|
+| 2 | A | 0.0577 | 0.288 | 0.867 | none | — | — | — |
+| 5 | A | 0.163 | 1.051 | 3.299 | none | — | — | — |
+| 10 | A | 0.405 | 2.895 | 9.212 | none | — | — | — |
+| 12 | B | 0.521 | 3.789 | 12.08 | 815.8 | `B_crit` | **524.1** | **1006×** |
+| 15 | B | 0.711 | 5.272 | 16.85 | 18.19 | `B_crit` | 3.06 | 4.30× |
+| 16 | C | 0.779 | 5.802 | 18.55 | 16.0 | `B = R+` | 2.79 | 3.58× |
+| 20 | C | 1.069 | 8.082 | 25.89 | 20.0 | `B = R+` | 3.88 | 3.63× |
+| 50 | C | 4.047 | 31.69 | 101.9 | 50.0 | `B = R+` | 15.16 | 3.75× |
+
+**`B_crit`** (Region B) is the finite break-even root, the unique `B > R` where
+`dv_bar_B(R,B) = dv_bar_H(R)`. **`B = R+`** (Region C) is *not* a break-even root
+— no finite `B_crit` exists there, because every admissible `B > R` already beats
+Hohmann. It is the open boundary of the winning interval, tabulated only to show
+the `B = R` timing degeneracy of §4.1/§8.2: the delta-v reduces exactly to
+Hohmann there while the time does not.
 
 The four conclusions this milestone commits to:
 
@@ -1696,7 +1714,7 @@ pytest 9.1.1 (the committed figures were rendered with matplotlib 3.10.9).
 
 | Output | Result |
 |---|---|
-| Test suite | 1080 passed under `pytest -W error` |
+| Test suite | 1088 passed under `pytest -W error` |
 | `results/*.csv`, `*.json`, `*.md`, `*.txt` | **8 of 8 byte-identical** to the committed files (same platform) |
 | `figures/*.png` | bytes differ under matplotlib 3.11.1 vs 3.10.9 |
 
@@ -1741,7 +1759,7 @@ Python versions, so stale or nondeterministic artifacts fail the build.
   3.12, running `pytest -W error` and the artifact-determinism check.
 - Runtime dependencies `numpy`, `scipy`; `matplotlib` under the `figures` extra;
   `pytest`, `ruff`, `pyflakes` under `dev`.
-- **1080 tests** passing under `pytest -W error` with no warnings.
+- **1088 tests** passing under `pytest -W error` with no warnings.
 
 ## M4.9 Remaining weaknesses
 
@@ -1767,6 +1785,46 @@ Stated plainly rather than hidden:
    a shared conceptual error would not be caught.
 6. **No experimental or mission validation.** Comparison is against classical
    textbook values only, and only after independent derivation.
+
+## M4.11 Region-C presentation fix (documentation only)
+
+A final consistency pass found the same presentation ambiguity in three places:
+a single column headed `B_crit` was being used for **two different quantities**.
+
+In Region C no finite break-even root exists, so `break_even_B(R)` returns
+`B_crit = None` and `winning_B_infimum = R`. The report generator collapsed the
+two with
+
+```python
+b_ref = result.B_crit if result.B_crit is not None else result.winning_B_infimum
+```
+
+and printed the result under a `B_crit` header. For `R = 16, 20, 50` that
+displayed `B_crit = 16, 20, 50` — which reads as "the break-even apoapsis equals
+the target radius" when the true statement is "**no break-even exists; every
+`B > R` already wins**". The numbers themselves were correct: they are the open
+`B → R+` boundary, evaluated for the `B = R` timing degeneracy.
+
+| Location | Before | After |
+|---|---|---|
+| `results/m2_verification_report.txt` §9 | one `B_crit` column | `region` + `B evaluated` + `basis` columns, with a legend distinguishing `B_crit`, `B=R+` and `-` |
+| DESIGN.md §8.3 | one `B_crit` column | same split, plus an explanatory paragraph |
+| DESIGN.md §6.2 | row `≥ R2*` \| `= R` | row `> R2*` (Region C) \| **none exists**, with `B_crit → R` named as a *limit* from inside Region B |
+
+`README.md` was audited and needed **no change**: it mentions `B_crit` only in
+Region-B contexts and already states that in Region C every `B > R` wins.
+DESIGN.md M2.4's region table was already correct (`B_crit = None` for Region C).
+
+**No numerical value changed anywhere.** Every cell in the affected tables is
+identical; only labelling and added columns differ, and the report was
+regenerated through `scripts/m2_verification_report.py` rather than hand-edited.
+All CSV/JSON artifacts and every figure are byte-identical.
+
+`tests/test_m4_docs.py` now enforces the distinction: it parses the generated
+report's §9 table and asserts that every Region-C row carries the `B=R+` basis
+rather than `B_crit`, that the report and DESIGN.md state no finite `B_crit`
+exists in Region C, and that `break_even_B` still returns `None` there. A future
+edit re-introducing a finite Region-C `B_crit` fails the suite.
 
 ## M4.10 Scope guard
 

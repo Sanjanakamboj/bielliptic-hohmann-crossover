@@ -118,7 +118,7 @@ the studied range is **≈ 316 m/s near `R ≈ 50`** — and even that requires 
 
 ## Verification
 
-**1080 tests** pass under `pytest -W error` with no warnings. `ruff` and `pyflakes`
+**1088 tests** pass under `pytest -W error` with no warnings. `ruff` and `pyflakes`
 are clean.
 
 - **Independent dimensional path.** Every normalized closed form is cross-checked
@@ -168,7 +168,7 @@ src/bielliptic_crossover/
     dimensional.py                    independent direct vis-viva path
     crossover.py                      thresholds, break-even B, classifier
     trade.py                          trade study, metrics, recommendation
-tests/                                1080 tests across 12 files
+tests/                                1088 tests across 12 files
 scripts/                              artifact and figure generators
 figures/                              portfolio (m3_*) and diagnostic (m2_*) figures
 results/                              deterministic CSV / JSON / text artifacts

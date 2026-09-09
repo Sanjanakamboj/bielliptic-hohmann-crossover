@@ -16,6 +16,7 @@ import bielliptic_crossover
 from bielliptic_crossover import (
     R1_REFERENCE,
     V1_REFERENCE,
+    break_even_B,
     classify_radius_ratio,
     threshold_R1,
     threshold_R2,
@@ -197,6 +198,83 @@ def test_both_thresholds_are_distinguished(document: str) -> None:
     text = (REPO_ROOT / document).read_text(encoding="utf-8")
     assert "11.9388" in text and "15.5817" in text
     assert "any" in text.lower() and "all" in text.lower()
+
+
+# ------------------------------------------- Region C has no finite B_crit
+
+M2_REPORT = (REPO_ROOT / "results" / "m2_verification_report.txt").read_text(
+    encoding="utf-8"
+)
+
+
+def _transfer_time_rows() -> list[list[str]]:
+    """Data rows of the generated report's TRANSFER TIMES table."""
+    section = M2_REPORT[M2_REPORT.index("9. TRANSFER TIMES") :]
+    section = section[: section.index("basis legend:")]
+    rows = []
+    for line in section.splitlines():
+        fields = line.split()
+        if len(fields) >= 7 and re.fullmatch(r"\d+\.\d+", fields[0]):
+            rows.append(fields)
+    return rows
+
+
+def test_report_transfer_time_table_was_parsed() -> None:
+    rows = _transfer_time_rows()
+    assert len(rows) == 8
+    assert [row[0] for row in rows] == [
+        "2.0", "5.0", "10.0", "12.0", "15.0", "16.0", "20.0", "50.0"
+    ]
+
+
+def test_region_C_rows_are_never_labelled_as_break_even_roots() -> None:
+    """Regression guard: in Region C no finite B_crit exists.
+
+    The value tabulated there is the OPEN ``B -> R+`` boundary, evaluated only for
+    the ``B = R`` timing degeneracy. Presenting it under a ``B_crit`` heading
+    reads as 'the break-even apoapsis equals the target radius', which is false.
+    """
+    for row in _transfer_time_rows():
+        R = float(row[0])
+        region, basis = row[1], row[6]
+        assert region == {"hohmann_only": "A", "large_B_bielliptic": "B",
+                          "all_bielliptic": "C"}[classify_radius_ratio(R)]
+        if region == "C":
+            assert basis == "B=R+", f"R={R} is Region C but basis is {basis!r}"
+            assert break_even_B(R).B_crit is None
+            # The tabulated value is the open boundary, i.e. R itself.
+            assert float(row[5]) == pytest.approx(R, rel=1e-12)
+        elif region == "B":
+            assert basis == "B_crit"
+            b_crit = break_even_B(R).B_crit
+            assert b_crit is not None
+            assert float(row[5]) == pytest.approx(b_crit, rel=1e-6)
+        else:
+            assert basis == "-"
+            assert row[5] == "none"
+            assert break_even_B(R).B_crit is None
+
+
+def test_report_states_region_C_has_no_finite_break_even() -> None:
+    legend = M2_REPORT[M2_REPORT.index("basis legend:") :][:900]
+    assert "NO finite B_crit exists" in legend
+    assert "NOT a break-even root" in legend
+    assert "open interval (R, inf)" in legend
+
+
+def test_design_states_region_C_has_no_finite_break_even() -> None:
+    assert "**none exists**" in DESIGN
+    assert "no finite `B_crit` exists" in DESIGN
+    # ... and never claims B_crit equals R beyond R2*.
+    assert "| ≥ `R2*` | `= R` |" not in DESIGN
+
+
+@pytest.mark.parametrize("R", [16.0, 20.0, 50.0, 100.0])
+def test_production_reports_no_break_even_root_in_region_C(R: float) -> None:
+    result = break_even_B(R)
+    assert result.regime == "all_bielliptic"
+    assert result.B_crit is None
+    assert result.winning_B_infimum == R
 
 
 # ------------------------------------------------------- artifacts

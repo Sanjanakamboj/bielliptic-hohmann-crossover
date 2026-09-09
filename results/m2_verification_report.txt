@@ -194,16 +194,31 @@ only as B -> infinity, i.e. only in infinite transfer time.
 9. TRANSFER TIMES
 ==============================================================================
 
-     R     t_H [d]   t_B(2R) [d]   t_B(5R) [d]         B_crit   t_B(B_crit) [d]     t_B/t_H
-------------------------------------------------------------------------------------------
-   2.0    0.057741      0.287557      0.867341           none                 -           -
-   5.0    0.163317      1.050978      3.299154           none                 -           -
-  10.0    0.405410      2.895327      9.211798           none                 -           -
-  12.0    0.520859      3.789305     12.083165     815.820250        524.087650   1006.1987
-  15.0    0.711189      5.272466     16.850379      18.190282          3.058990      4.3012
-  16.0    0.778894      5.802018     18.553193      16.000000          2.790441      3.5826
-  20.0    1.069385      8.081844     25.886970      20.000000          3.880607      3.6288
-  50.0    4.047254     31.694087    101.930526      50.000000         15.159585      3.7456
+The 'B evaluated' column is NOT a single quantity: what it means depends on
+the region, so the 'basis' column states which. See the legend below.
+
+     R  region     t_H [d]   t_B(2R) [d]   t_B(5R) [d]    B evaluated   basis       t_B [d]     t_B/t_H
+--------------------------------------------------------------------------------------------------------
+   2.0       A    0.057741      0.287557      0.867341           none       -             -           -
+   5.0       A    0.163317      1.050978      3.299154           none       -             -           -
+  10.0       A    0.405410      2.895327      9.211798           none       -             -           -
+  12.0       B    0.520859      3.789305     12.083165     815.820250  B_crit    524.087650   1006.1987
+  15.0       B    0.711189      5.272466     16.850379      18.190282  B_crit      3.058990      4.3012
+  16.0       C    0.778894      5.802018     18.553193      16.000000    B=R+      2.790441      3.5826
+  20.0       C    1.069385      8.081844     25.886970      20.000000    B=R+      3.880607      3.6288
+  50.0       C    4.047254     31.694087    101.930526      50.000000    B=R+     15.159585      3.7456
+
+basis legend:
+  -       Region A: Hohmann beats every admissible B. No break-even exists,
+          so there is nothing to evaluate.
+  B_crit  Region B: the FINITE break-even root, i.e. the unique B > R at
+          which dv_B(R,B) = dv_H(R). Bi-elliptic wins only for B > B_crit,
+          and the saving is exactly zero at the root itself.
+  B=R+    Region C: NO finite B_crit exists. Every admissible B > R already
+          beats Hohmann, so the winning set is the open interval (R, inf)
+          and its infimum B = R is not attained. The value shown is that
+          open boundary, evaluated only for the B = R timing degeneracy
+          below. It is NOT a break-even root.
 
 The B = R degeneracy (delta-v and time degenerate DIFFERENTLY):
   dv_B(R,R) = dv_H(R) exactly, but
